@@ -56,3 +56,20 @@ namespace lumalink::platform::transport
         virtual std::uint16_t remotePort() const = 0;
     };
 }
+
+// Back-compat aliases: map old imported namespaces to the new platform namespaces
+namespace httpadv::v1::transport {
+    using AvailableBytes = lumalink::platform::buffers::AvailableBytes;
+    using AvailableResult = lumalink::platform::buffers::AvailableResult;
+    using ErrorResult = lumalink::platform::buffers::ErrorResult;
+    using ExhaustedResult = lumalink::platform::buffers::ExhaustedResult;
+    using TemporarilyUnavailableResult = lumalink::platform::buffers::TemporarilyUnavailableResult;
+    using IClient = lumalink::platform::transport::IClient;
+    using IServer = lumalink::platform::transport::IServer;
+    using IPeer = lumalink::platform::transport::IPeer;
+}
+
+namespace httpadv::v1::util {
+    template <typename T, std::size_t N = lumalink::platform::util::dynamic_extent>
+    using span = lumalink::platform::util::span<T, N>;
+}

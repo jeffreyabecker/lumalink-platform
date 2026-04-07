@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "../transport/TransportInterfaces.h"
+#include "transport/TransportInterfaces.h"
 #ifdef ARDUINO
 #include "./arduino/ArduinoWiFiTransport.h"
 #elif defined(_WIN32)

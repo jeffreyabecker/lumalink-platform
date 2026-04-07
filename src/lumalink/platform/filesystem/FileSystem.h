@@ -7,9 +7,11 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace lumalink::platform::filesystem {
+    inline constexpr std::string_view ContractName = "filesystem";
     enum class FileOpenMode { Read, Write, ReadWrite };
 
     class IFile : public lumalink::platform::buffers::IByteChannel {
@@ -26,8 +28,8 @@ namespace lumalink::platform::filesystem {
     using FileHandle = std::unique_ptr<IFile>;
 
     struct DirectoryEntry {
-        std::string_view name;
-        std::string_view path;
+        std::string name;
+        std::string path;
         bool isDirectory = false;
     };
 

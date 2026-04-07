@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../transport/IFileSystem.h"
+#include "../filesystem/FileSystem.h"
 
 #include <algorithm>
 #include <chrono>
@@ -13,15 +13,15 @@
 
 namespace lumalink::platform::memory
 {
-    using lumalink::platform::transport::AvailableBytes;
-    using lumalink::platform::transport::AvailableResult;
-    using lumalink::platform::transport::DirectoryEntry;
-    using lumalink::platform::transport::DirectoryEntryCallback;
-    using lumalink::platform::transport::ExhaustedResult;
-    using lumalink::platform::transport::FileHandle;
-    using lumalink::platform::transport::IFile;
-    using lumalink::platform::transport::FileOpenMode;
-    using lumalink::platform::transport::IFileSystem;
+    using lumalink::platform::buffers::AvailableBytes;
+    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ExhaustedResult;
+    using lumalink::platform::filesystem::DirectoryEntry;
+    using lumalink::platform::filesystem::DirectoryEntryCallback;
+    using lumalink::platform::filesystem::FileHandle;
+    using lumalink::platform::filesystem::FileOpenMode;
+    using lumalink::platform::filesystem::IFile;
+    using lumalink::platform::filesystem::IFileSystem;
 
     class MemoryFile ;
     class MemoryFileSystem : public IFileSystem

@@ -2,6 +2,7 @@
 
 #include "lumalink/Span.h"
 
+#include "lumalink/platform/buffers/Buffers.h"
 #include "lumalink/platform/buffers/Availability.h"
 #include "lumalink/platform/buffers/ByteStream.h"
 #include "lumalink/platform/transport/TransportInterfaces.h"

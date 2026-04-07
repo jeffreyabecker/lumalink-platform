@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../transport/IFileSystem.h"
+#include "../filesystem/FileSystem.h"
 
 #include <memory>
 #include <string>
@@ -52,7 +52,7 @@ namespace lumalink::platform::arduino
                 ArduinoFile(FS& fileSystem, File file, std::string fsPath, std::string path, bool directory,
                             std::optional<std::size_t> size, std::optional<uint32_t> lastWrite, FileOpenMode mode)
                     : fileSystem_(fileSystem), file_(std::move(file)), fsPath_(std::move(fsPath)), path_(std::move(path)),
-                      name_(std::string(httpadv::v1::platform::PosixPathMapper::BasenameView(path_))), directory_(directory), size_(size),
+                      name_(std::string(lumalink::platform::PosixPathMapper::BasenameView(path_))), directory_(directory), size_(size),
                       lastWrite_(lastWrite), mode_(mode)
                 {
                 }
@@ -229,12 +229,12 @@ namespace lumalink::platform::arduino
             {
               public:
                 explicit ArduinoFS(FS& fileSystem)
-                    : fileSystem_(fileSystem), mapper_(httpadv::v1::platform::PosixPathMapper::NormalizeRootPath("/"))
+                    : fileSystem_(fileSystem), mapper_(lumalink::platform::PosixPathMapper::NormalizeRootPath("/"))
                 {
                 }
 
                 ArduinoFS(FS& fileSystem, std::string_view rootPath)
-                    : fileSystem_(fileSystem), mapper_(httpadv::v1::platform::PosixPathMapper::NormalizeRootPath(rootPath))
+                    : fileSystem_(fileSystem), mapper_(lumalink::platform::PosixPathMapper::NormalizeRootPath(rootPath))
                 {
                 }
 
@@ -373,11 +373,11 @@ namespace lumalink::platform::arduino
                         std::string entryFsPath = CopyCString(entry.fullName());
                         if (entryFsPath.empty())
                         {
-                            entryFsPath = httpadv::v1::platform::PosixPathMapper::JoinScopedPath(fsDirectoryPath, CopyCString(entry.name()));
+                            entryFsPath = lumalink::platform::PosixPathMapper::JoinScopedPath(fsDirectoryPath, CopyCString(entry.name()));
                         }
 
-                        const std::string entryVirtualPath = httpadv::v1::platform::PosixPathMapper::Join(virtualDirectoryPath, CopyCString(entry.name()));
-                        const DirectoryEntry directoryEntry{std::string(httpadv::v1::platform::PosixPathMapper::BasenameView(entryVirtualPath)),
+                        const std::string entryVirtualPath = lumalink::platform::PosixPathMapper::Join(virtualDirectoryPath, CopyCString(entry.name()));
+                        const DirectoryEntry directoryEntry{std::string(lumalink::platform::PosixPathMapper::BasenameView(entryVirtualPath)),
                                                             entryVirtualPath, entry.isDirectory()};
                         if (!callback(directoryEntry))
                         {

@@ -23,16 +23,16 @@
 
 namespace lumalink::platform::windows
 {
-            using lumalink::platform::AvailableBytes;
-            using lumalink::platform::AvailableResult;
-            using lumalink::platform::DirectoryEntry;
-            using lumalink::platform::DirectoryEntryCallback;
-            using lumalink::platform::ExhaustedResult;
-            using lumalink::platform::FileHandle;
-            using lumalink::platform::IFile;
-            using lumalink::platform::IFileSystem;
-            using lumalink::platform::FileOpenMode;
-            using lumalink::platform::TemporarilyUnavailableResult;
+            using lumalink::platform::buffers::AvailableBytes;
+            using lumalink::platform::buffers::AvailableResult;
+            using lumalink::platform::filesystem::DirectoryEntry;
+            using lumalink::platform::filesystem::DirectoryEntryCallback;
+            using lumalink::platform::buffers::ExhaustedResult;
+            using lumalink::platform::filesystem::FileHandle;
+            using lumalink::platform::filesystem::IFile;
+            using lumalink::platform::filesystem::IFileSystem;
+            using lumalink::platform::filesystem::FileOpenMode;
+            using lumalink::platform::buffers::TemporarilyUnavailableResult;
 
 
 
@@ -198,7 +198,7 @@ namespace lumalink::platform::windows
                     return AvailableBytes(*size_ - position_);
                 }
 
-                size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+                size_t read(lumalink::platform::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -228,7 +228,7 @@ namespace lumalink::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+                size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -257,7 +257,7 @@ namespace lumalink::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
+                std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
                 {
                     if (stream_ == nullptr || directory_ || !isWritable() || buffer.empty())
                     {
@@ -551,7 +551,7 @@ namespace lumalink::platform::windows
                     }
                 }
 
-                httpadv::v1::platform::WindowsPathMapper mapper_{};
+                lumalink::platform::WindowsPathMapper mapper_{};
             };
 
-} // namespace httpadv::v1::platform::windows
+} // namespace lumalink::platform::windows

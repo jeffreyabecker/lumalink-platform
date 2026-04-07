@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../transport/TransportInterfaces.h"
-
-#include "../../core/Defines.h"
+#include "../transport/TransportInterfaces.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -20,15 +18,14 @@
 
 namespace lumalink::platform::windows {
 
-using lumalink::platform::transport::AvailableBytes;
-using lumalink::platform::transport::AvailableResult;
-using lumalink::platform::transport::ErrorResult;
-using lumalink::platform::transport::ExhaustedResult;
+using lumalink::platform::buffers::AvailableBytes;
+using lumalink::platform::buffers::AvailableResult;
+using lumalink::platform::buffers::ErrorResult;
+using lumalink::platform::buffers::ExhaustedResult;
 using lumalink::platform::transport::IClient;
 using lumalink::platform::transport::IPeer;
 using lumalink::platform::transport::IServer;
-using lumalink::platform::transport::TemporarilyUnavailableResult;
-using lumalink::platform::core::MAX_CONCURRENT_CONNECTIONS;
+using lumalink::platform::buffers::TemporarilyUnavailableResult;
 
 using SocketHandle = SOCKET;
 constexpr SocketHandle InvalidSocketHandle = INVALID_SOCKET;
@@ -306,7 +303,7 @@ public:
     return connected() ? TemporarilyUnavailableResult() : ExhaustedResult();
   }
 
-  std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
+  std::size_t read(lumalink::platform::util::span<std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
@@ -330,7 +327,7 @@ public:
     return 0;
   }
 
-  std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
+  std::size_t peek(lumalink::platform::util::span<std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
@@ -354,18 +351,18 @@ public:
     return 0;
   }
 
-  std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
+  std::size_t write(lumalink::platform::util::span<const std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
 
     std::size_t totalSent = 0;
-    while (total_sent < buffer.size()) {
-      const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + total_sent),
-                            static_cast<int>((std::min)(buffer.size() - total_sent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+    while (totalSent < buffer.size()) {
+      const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + totalSent),
+                            static_cast<int>((std::min)(buffer.size() - totalSent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
                             0);
       if (sent > 0) {
-        total_sent += static_cast<std::size_t>(sent);
+        totalSent += static_cast<std::size_t>(sent);
         continue;
       }
 
@@ -381,7 +378,7 @@ public:
       break;
     }
 
-    return total_sent;
+    return totalSent;
   }
 
   void flush() override {}
@@ -463,7 +460,7 @@ public:
       return;
     }
 
-    if (listen(listener.get(), static_cast<int>(MAX_CONCURRENT_CONNECTIONS)) != 0) {
+    if (listen(listener.get(), SOMAXCONN) != 0) {
       return;
     }
 
@@ -562,7 +559,7 @@ public:
     return sent >= 0;
   }
 
-  std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
+  std::size_t write(lumalink::platform::util::span<const std::uint8_t> buffer) override {
     outboundPacket_.insert(outboundPacket_.end(), buffer.begin(), buffer.end());
     return buffer.size();
   }
@@ -614,24 +611,24 @@ public:
     return socket_.valid() ? TemporarilyUnavailableResult() : ExhaustedResult();
   }
 
-  std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
+  std::size_t read(lumalink::platform::util::span<std::uint8_t> buffer) override {
     const std::size_t copied = peek(buffer);
     inboundOffset_ += copied;
-    if (inbound_offset >= inbound_packet.size()) {
-      inbound_packet.clear();
-      inbound_offset = 0;
+    if (inboundOffset_ >= inboundPacket_.size()) {
+      inboundPacket_.clear();
+      inboundOffset_ = 0;
     }
 
     return copied;
   }
 
-  std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
-    if (buffer.empty() || inbound_offset >= inbound_packet.size()) {
+  std::size_t peek(lumalink::platform::util::span<std::uint8_t> buffer) override {
+    if (buffer.empty() || inboundOffset_ >= inboundPacket_.size()) {
       return 0;
     }
 
-    const std::size_t copied = (std::min)(buffer.size(), inbound_packet.size() - inbound_offset);
-    std::copy_n(inbound_packet.data() + inbound_offset, copied, buffer.data());
+    const std::size_t copied = (std::min)(buffer.size(), inboundPacket_.size() - inboundOffset_);
+    std::copy_n(inboundPacket_.data() + inboundOffset_, copied, buffer.data());
     return copied;
   }
 
@@ -675,11 +672,11 @@ private:
   }
 
   SocketHandleOwner socket_{};
-  std::vector<std::uint8_t> inbound_packet{};
-  std::size_t inbound_offset = 0;
-  std::vector<std::uint8_t> outbound_packet{};
-  sockaddr_storage outbound_destination{};
-  socklen_t outbound_destination_length = 0;
+  std::vector<std::uint8_t> inboundPacket_{};
+  std::size_t inboundOffset_ = 0;
+  std::vector<std::uint8_t> outboundPacket_{};
+  sockaddr_storage outboundDestination_{};
+  socklen_t outboundDestinationLength_ = 0;
   std::string remoteAddress_{};
   std::uint16_t remotePort_ = 0;
 };

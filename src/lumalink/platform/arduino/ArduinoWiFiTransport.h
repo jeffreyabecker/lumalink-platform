@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../transport/TransportTraits.h"
+#include "../transport/TransportTraits.h"
 
 #include <memory>
 #include <utility>
@@ -25,14 +25,14 @@ namespace lumalink::platform::arduino {
 
 #if defined(ARDUINO)
 
-using lumalink::platform::transport::AvailableBytes;
-using lumalink::platform::transport::AvailableResult;
-using lumalink::platform::transport::ErrorResult;
-using lumalink::platform::transport::ExhaustedResult;
+using lumalink::platform::buffers::AvailableBytes;
+using lumalink::platform::buffers::AvailableResult;
+using lumalink::platform::buffers::ErrorResult;
+using lumalink::platform::buffers::ExhaustedResult;
 using lumalink::platform::transport::IClient;
 using lumalink::platform::transport::IPeer;
 using lumalink::platform::transport::IServer;
-using lumalink::platform::transport::TemporarilyUnavailableResult;
+using lumalink::platform::buffers::TemporarilyUnavailableResult;
 
 namespace detail {
 
@@ -195,7 +195,7 @@ public:
 
 	bool endPacket() override { return udp_.endPacket() != 0; }
 
-	std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
+	std::size_t write(lumalink::platform::util::span<const std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : udp_.write(buffer.data(), buffer.size());
 	}
 
@@ -212,11 +212,11 @@ public:
 		return detail::mapLegacyAvailable(udp_.available(), active_);
 	}
 
-	std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
+	std::size_t read(lumalink::platform::util::span<std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : udp_.read(buffer.data(), buffer.size());
 	}
 
-	std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
+	std::size_t peek(lumalink::platform::util::span<std::uint8_t> buffer) override {
 		if (buffer.empty()) {
 			return 0;
 		}
@@ -306,5 +306,5 @@ public:
 #endif
 };
 
-} // namespace httpadv::v1::platform::arduino
+} // namespace lumalink::platform::arduino
 

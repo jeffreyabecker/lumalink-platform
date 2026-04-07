@@ -16,4 +16,9 @@
 #include "lumalink/platform/TransportFactory.h"
 #include "lumalink/platform/PathMapper.h"
 
+#include "lumalink/platform/time/ClockTypes.h"
+#include "lumalink/platform/time/Clock.h"
+#include "lumalink/platform/time/ManualClock.h"
+#include "lumalink/platform/time/TimeSource.h"
+#include "lumalink/platform/ClockFactory.h"
 

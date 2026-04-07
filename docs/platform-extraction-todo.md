@@ -22,11 +22,11 @@ This file assumes the current plan is still in force:
 
 ## Phase 1: Stabilize The Imported Snapshot
 
-- [ ] Add `build/` to `.gitignore` so repository status stays clean after local validation.
-- [ ] Decide whether the raw-imported `src/httpadv/v1/` tree is a temporary staging area or should be moved immediately into a dedicated `src/imported/httpadv/v1/` quarantine path.
-- [ ] Record the exact imported file set from the old repository so future diffs can distinguish copy-only changes from semantic rewrites.
-- [ ] Confirm that the imported platform slice is limited to platform-owned code and immediate transport/util/core support headers.
-- [ ] Commit the current raw-import snapshot before namespace and include rewrites begin.
+- [x] Add `build/` to `.gitignore` so repository status stays clean after local validation.
+- [x] Treat the raw-imported `src/httpadv/v1/` tree as a temporary staging area and move it to `src/imported/httpadv/v1/` quarantine path.
+- [x] Record the exact imported file set from the old repository in `docs/imported-file-list.txt` so future diffs can distinguish copy-only changes from semantic rewrites.
+- [x] Confirm that the imported platform slice is limited to platform-owned code and immediate transport/util/core support headers (manual audit recorded in docs).
+- [x] Commit the current raw-import snapshot before namespace and include rewrites begin.
 
 ## Phase 2: Build The Real Contract Surface
 

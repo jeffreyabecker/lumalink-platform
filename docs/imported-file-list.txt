@@ -1,0 +1,20 @@
+List of files imported from pico-httpserveradvanced snapshot (as of commit 0502409):
+
+src/imported/httpadv/v1/core/Defines.h
+src/imported/httpadv/v1/platform/PathMapper.h
+src/imported/httpadv/v1/platform/TransportFactory.h
+src/imported/httpadv/v1/platform/arduino/ArduinoFileAdapter.h
+src/imported/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h
+src/imported/httpadv/v1/platform/memory/MemoryFileAdapter.h
+src/imported/httpadv/v1/platform/posix/PosixFileAdapter.h
+src/imported/httpadv/v1/platform/posix/PosixSocketTransport.h
+src/imported/httpadv/v1/platform/windows/WindowsFileAdapter.h
+src/imported/httpadv/v1/platform/windows/WindowsSocketTransport.h
+src/imported/httpadv/v1/transport/Availability.h
+src/imported/httpadv/v1/transport/ByteStream.h
+src/imported/httpadv/v1/transport/IFileSystem.h
+src/imported/httpadv/v1/transport/ITransportFactory.h
+src/imported/httpadv/v1/transport/TransportInterfaces.h
+src/imported/httpadv/v1/transport/TransportTraits.h
+src/imported/httpadv/v1/util/Span.h
+src/imported/httpadv/v1/util/span.hpp

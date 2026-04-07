@@ -56,7 +56,7 @@ This file assumes the current plan is still in force:
 ### Shared Utility Support
 
 - [ ] Replace imported `httpadv::v1::util::span` usage with the new repository-owned namespace and include paths.
-- [ ] Decide whether `Span.h` and `span.hpp` remain public or become internal support for the public contract headers.
+- [x] Decide whether `Span.h` and `span.hpp` remain public or become internal support for the public contract headers. (Decision: expose `lumalink::Span` as the stable public symbol, implemented in `src/lumalink/Span.h`)
 - [ ] Audit `Defines.h` and split out anything that is actually HTTP-specific versus truly platform-owned.
 - [ ] Create a platform-owned constants/configuration header if socket/file adapters still need shared compile-time constants.
 

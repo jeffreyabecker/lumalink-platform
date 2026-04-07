@@ -11,7 +11,7 @@
 #include "../../src/httpadv/v1/platform/posix/PosixSocketTransport.h"
 #endif
 
-#include "../../src/httpadv/v1/platform/TransportFactory.h"
+#include "../../src/lumalink/platform/TransportFactory.h"
 
 #include <cstdint>
 #include <cstring>

@@ -16,7 +16,7 @@
 #include <string_view>
 #include <utility>
 
-namespace httpadv::v1::platform::posix
+namespace lumalink::platform::posix
 {
             struct FileMetadata
             {
@@ -285,7 +285,7 @@ namespace httpadv::v1::platform::posix
 
                 std::string_view name() const override
                 {
-                    return httpadv::v1::platform::PosixPathMapper::BasenameView(path_);
+                    return lumalink::platform::PosixPathMapper::BasenameView(path_);
                 }
 
                 std::string_view path() const override
@@ -484,7 +484,7 @@ namespace httpadv::v1::platform::posix
                         [this, &hostDirectoryPath, &virtualDirectoryPath, &callback, recursive](std::string_view name,
                                                                                                 const bool isDirectory)
                         {
-                            const std::string entryHostPath = httpadv::v1::platform::PosixPathMapper::JoinScopedPath(hostDirectoryPath, name);
+                            const std::string entryHostPath = lumalink::platform::PosixPathMapper::JoinScopedPath(hostDirectoryPath, name);
                             const std::string entryVirtualPath = httpadv::v1::platform::PosixPathMapper::Join(virtualDirectoryPath, name);
                             const DirectoryEntry entry{std::string(name), entryVirtualPath, isDirectory};
                             if (!callback(entry))

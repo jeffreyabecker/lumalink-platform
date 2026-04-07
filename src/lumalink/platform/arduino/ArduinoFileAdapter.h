@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../transport/IFileSystem.h"
+#include "../transport/IFileSystem.h"
 
 #include <memory>
 #include <string>
@@ -8,12 +8,12 @@
 
 #if defined(ARDUINO) && __has_include(<FS.h>)
 #include <FS.h>
-#include "../../lumalink/platform/PathMapper.h"
+#include "../PathMapper.h"
 
 #include <optional>
 #include <utility>
 
-namespace httpadv::v1::platform::arduino
+namespace lumalink::platform::arduino
 {
             inline std::optional<std::size_t> FileSize(File& file, const bool isDirectory)
             {
@@ -83,7 +83,7 @@ namespace httpadv::v1::platform::arduino
                     return atEndOfFile() ? ExhaustedResult() : TemporarilyUnavailableResult();
                 }
 
-                size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+                size_t read(lumalink::platform::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -99,7 +99,7 @@ namespace httpadv::v1::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+                size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -116,7 +116,7 @@ namespace httpadv::v1::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
+                std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isWritable() || buffer.empty())
                     {
@@ -417,16 +417,16 @@ namespace httpadv::v1::platform::arduino
                 }
 
                 FS& fileSystem_;
-                httpadv::v1::platform::PosixPathMapper mapper_{};
-            };
-} // namespace httpadv::v1::platform::arduino
+                    lumalink::platform::PosixPathMapper mapper_{};
+                };
+    } // namespace lumalink::platform::arduino
 
 #else
 
-namespace httpadv::v1::platform::arduino
+namespace lumalink::platform::arduino
 {
     class FS;
 
-} // namespace httpadv::v1::platform::arduino
+} // namespace lumalink::platform::arduino
 
 #endif

@@ -2,8 +2,6 @@
 
 #include "../../transport/TransportInterfaces.h"
 
-#include "../../core/Defines.h"
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -18,17 +16,16 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv::v1::platform::windows {
+namespace lumalink::platform::windows {
 
-using httpadv::v1::transport::AvailableBytes;
-using httpadv::v1::transport::AvailableResult;
-using httpadv::v1::transport::ErrorResult;
-using httpadv::v1::transport::ExhaustedResult;
-using httpadv::v1::transport::IClient;
-using httpadv::v1::transport::IPeer;
-using httpadv::v1::transport::IServer;
-using httpadv::v1::transport::TemporarilyUnavailableResult;
-using httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS;
+using lumalink::platform::transport::AvailableBytes;
+using lumalink::platform::transport::AvailableResult;
+using lumalink::platform::transport::ErrorResult;
+using lumalink::platform::transport::ExhaustedResult;
+using lumalink::platform::transport::IClient;
+using lumalink::platform::transport::IPeer;
+using lumalink::platform::transport::IServer;
+using lumalink::platform::transport::TemporarilyUnavailableResult;
 
 using SocketHandle = SOCKET;
 constexpr SocketHandle InvalidSocketHandle = INVALID_SOCKET;
@@ -360,12 +357,12 @@ public:
     }
 
     std::size_t totalSent = 0;
-    while (totalSent < buffer.size()) {
-      const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + totalSent),
-                            static_cast<int>((std::min)(buffer.size() - totalSent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+    while (total_sent < buffer.size()) {
+      const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + total_sent),
+                            static_cast<int>((std::min)(buffer.size() - total_sent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
                             0);
       if (sent > 0) {
-        totalSent += static_cast<std::size_t>(sent);
+        total_sent += static_cast<std::size_t>(sent);
         continue;
       }
 
@@ -381,7 +378,7 @@ public:
       break;
     }
 
-    return totalSent;
+    return total_sent;
   }
 
   void flush() override {}
@@ -463,7 +460,7 @@ public:
       return;
     }
 
-    if (listen(listener.get(), static_cast<int>(MAX_CONCURRENT_CONNECTIONS)) != 0) {
+    if (listen(listener.get(), SOMAXCONN) != 0) {
       return;
     }
 
@@ -617,21 +614,21 @@ public:
   std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
     const std::size_t copied = peek(buffer);
     inboundOffset_ += copied;
-    if (inboundOffset_ >= inboundPacket_.size()) {
-      inboundPacket_.clear();
-      inboundOffset_ = 0;
+    if (inbound_offset >= inbound_packet.size()) {
+      inbound_packet.clear();
+      inbound_offset = 0;
     }
 
     return copied;
   }
 
   std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
-    if (buffer.empty() || inboundOffset_ >= inboundPacket_.size()) {
+    if (buffer.empty() || inbound_offset >= inbound_packet.size()) {
       return 0;
     }
 
-    const std::size_t copied = (std::min)(buffer.size(), inboundPacket_.size() - inboundOffset_);
-    std::copy_n(inboundPacket_.data() + inboundOffset_, copied, buffer.data());
+    const std::size_t copied = (std::min)(buffer.size(), inbound_packet.size() - inbound_offset);
+    std::copy_n(inbound_packet.data() + inbound_offset, copied, buffer.data());
     return copied;
   }
 
@@ -675,11 +672,11 @@ private:
   }
 
   SocketHandleOwner socket_{};
-  std::vector<std::uint8_t> inboundPacket_{};
-  std::size_t inboundOffset_ = 0;
-  std::vector<std::uint8_t> outboundPacket_{};
-  sockaddr_storage outboundDestination_{};
-  socklen_t outboundDestinationLength_ = 0;
+  std::vector<std::uint8_t> inbound_packet{};
+  std::size_t inbound_offset = 0;
+  std::vector<std::uint8_t> outbound_packet{};
+  sockaddr_storage outbound_destination{};
+  socklen_t outbound_destination_length = 0;
   std::string remoteAddress_{};
   std::uint16_t remotePort_ = 0;
 };
@@ -736,4 +733,4 @@ public:
   }
 };
 
-} // namespace httpadv::v1::platform::windows
+} // namespace lumalink::platform::windows

@@ -21,18 +21,18 @@
 
 #endif
 
-namespace httpadv::v1::platform::arduino {
+namespace lumalink::platform::arduino {
 
 #if defined(ARDUINO)
 
-using httpadv::v1::transport::AvailableBytes;
-using httpadv::v1::transport::AvailableResult;
-using httpadv::v1::transport::ErrorResult;
-using httpadv::v1::transport::ExhaustedResult;
-using httpadv::v1::transport::IClient;
-using httpadv::v1::transport::IPeer;
-using httpadv::v1::transport::IServer;
-using httpadv::v1::transport::TemporarilyUnavailableResult;
+using lumalink::platform::transport::AvailableBytes;
+using lumalink::platform::transport::AvailableResult;
+using lumalink::platform::transport::ErrorResult;
+using lumalink::platform::transport::ExhaustedResult;
+using lumalink::platform::transport::IClient;
+using lumalink::platform::transport::IPeer;
+using lumalink::platform::transport::IServer;
+using lumalink::platform::transport::TemporarilyUnavailableResult;
 
 namespace detail {
 
@@ -95,11 +95,11 @@ public:
 		return detail::mapLegacyAvailable(client_.available(), client_.connected());
 	}
 
-	std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
+	std::size_t read(lumalink::platform::util::span<std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : client_.read(buffer.data(), buffer.size());
 	}
 
-	std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
+	std::size_t peek(lumalink::platform::util::span<std::uint8_t> buffer) override {
 		if (buffer.empty()) {
 			return 0;
 		}
@@ -113,7 +113,7 @@ public:
 		return 1;
 	}
 
-	std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
+	std::size_t write(lumalink::platform::util::span<const std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : client_.write(buffer.data(), buffer.size());
 	}
 

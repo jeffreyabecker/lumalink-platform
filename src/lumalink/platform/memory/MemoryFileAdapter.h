@@ -11,17 +11,17 @@
 #include <string>
 #include <vector>
 
-namespace httpadv::v1::platform::memory
+namespace lumalink::platform::memory
 {
-    using httpadv::v1::transport::AvailableBytes;
-    using httpadv::v1::transport::AvailableResult;
-    using httpadv::v1::transport::DirectoryEntry;
-    using httpadv::v1::transport::DirectoryEntryCallback;
-    using httpadv::v1::transport::ExhaustedResult;
-    using httpadv::v1::transport::FileHandle;
-    using httpadv::v1::transport::IFile;
-    using httpadv::v1::transport::FileOpenMode;
-    using httpadv::v1::transport::IFileSystem;
+    using lumalink::platform::transport::AvailableBytes;
+    using lumalink::platform::transport::AvailableResult;
+    using lumalink::platform::transport::DirectoryEntry;
+    using lumalink::platform::transport::DirectoryEntryCallback;
+    using lumalink::platform::transport::ExhaustedResult;
+    using lumalink::platform::transport::FileHandle;
+    using lumalink::platform::transport::IFile;
+    using lumalink::platform::transport::FileOpenMode;
+    using lumalink::platform::transport::IFileSystem;
 
     class MemoryFile ;
     class MemoryFileSystem : public IFileSystem
@@ -377,7 +377,7 @@ namespace httpadv::v1::platform::memory
             return AvailableBytes(node_->data.size() - position_);
         }
 
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t read(lumalink::platform::util::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -391,7 +391,7 @@ namespace httpadv::v1::platform::memory
             return toCopy;
         }
 
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -404,7 +404,7 @@ namespace httpadv::v1::platform::memory
             return toCopy;
         }
 
-        std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
+        std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
         {
 
             if (mode_ == FileOpenMode::Read)
@@ -438,9 +438,9 @@ namespace httpadv::v1::platform::memory
         bool closed_ = false;
     };
 
-} // namespace httpadv::v1::platform::memory
+} // namespace lumalink::platform::memory
 
-namespace httpadv::v1::platform::memory
+namespace lumalink::platform::memory
 {
     inline FileHandle MemoryFileSystem::open(std::string_view path, FileOpenMode mode)
     {
@@ -465,4 +465,4 @@ namespace httpadv::v1::platform::memory
         return FileHandle(new MemoryFile(node, std::string(node->name), std::string(path), mode));
     }
 
-} // namespace httpadv::v1::platform::memory
+} // namespace lumalink::platform::memory

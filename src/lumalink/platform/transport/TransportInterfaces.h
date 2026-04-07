@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../buffers/ByteStream.h"
-#include "../core/Defines.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -55,22 +54,4 @@ namespace lumalink::platform::transport
         virtual std::string_view remoteAddress() const = 0;
         virtual std::uint16_t remotePort() const = 0;
     };
-}
-
-// Back-compat aliases: map old imported namespaces to the new platform namespaces
-namespace httpadv::v1::transport {
-    using AvailableResult = lumalink::platform::buffers::AvailableResult;
-    inline AvailableResult AvailableBytes(std::size_t count) { return lumalink::platform::buffers::AvailableBytes(count); }
-    inline AvailableResult ErrorResult(int errorCode = 0) { return lumalink::platform::buffers::ErrorResult(errorCode); }
-    inline AvailableResult ExhaustedResult() { return lumalink::platform::buffers::ExhaustedResult(); }
-    inline AvailableResult TemporarilyUnavailableResult() { return lumalink::platform::buffers::TemporarilyUnavailableResult(); }
-
-    using IClient = lumalink::platform::transport::IClient;
-    using IServer = lumalink::platform::transport::IServer;
-    using IPeer = lumalink::platform::transport::IPeer;
-}
-
-namespace httpadv::v1::util {
-    template <typename T, std::size_t N = lumalink::platform::util::dynamic_extent>
-    using span = lumalink::platform::util::span<T, N>;
 }

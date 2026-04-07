@@ -2,8 +2,6 @@
 
 #include "../../transport/TransportInterfaces.h"
 
-#include "../../../core/Defines.h"
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -452,7 +450,7 @@ public:
       return;
     }
 
-    if (listen(listener.get(), static_cast<int>(MAX_CONCURRENT_CONNECTIONS)) != 0) {
+    if (listen(listener.get(), SOMAXCONN) != 0) {
       return;
     }
 

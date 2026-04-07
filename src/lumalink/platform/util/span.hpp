@@ -1,3 +1,5 @@
+#pragma once
+
 /* Minimal, header-only `tcb::span` replacement sufficient for platform needs.
    This avoids relying on C++20 `std::span` so the codebase builds on older toolchains.
 

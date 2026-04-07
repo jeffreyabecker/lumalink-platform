@@ -120,7 +120,7 @@ This file assumes the current plan is still in force:
 
 ## Phase 5: Finalize Public Surface
 
-- [ ] Replace the placeholder `src/LumaLinkPlatform.h` umbrella header with one that exports the real contract surface.
+- [x] Replace the placeholder `src/LumaLinkPlatform.h` umbrella header with one that exports the real contract surface.
 - [ ] Replace the placeholder contract-name constants in `src/lumalink/platform/...` with actual public APIs.
 - [ ] Update `README.md` to describe the real public layout and current supported implementations.
 - [ ] Update `library.json`, `library.properties`, and `CMakeLists.txt` if the final public header names or folder layout differ from the scaffold.

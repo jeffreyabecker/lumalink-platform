@@ -28,7 +28,7 @@ using lumalink::platform::transport::IClient;
 using lumalink::platform::transport::IServer;
 using lumalink::platform::transport::IPeer;
 using lumalink::platform::buffers::AvailableResult;
-using lumalink::platform::util::span;
+using lumalink::span;
 
 #if defined(_WIN32)
 using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;

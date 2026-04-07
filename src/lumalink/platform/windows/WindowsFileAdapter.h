@@ -198,7 +198,7 @@ namespace lumalink::platform::windows
                     return AvailableBytes(*size_ - position_);
                 }
 
-                size_t read(lumalink::platform::util::span<uint8_t> buffer) override
+                size_t read(lumalink::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -228,7 +228,7 @@ namespace lumalink::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
+                size_t peek(lumalink::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -257,7 +257,7 @@ namespace lumalink::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
+                std::size_t write(lumalink::span<const uint8_t> buffer) override
                 {
                     if (stream_ == nullptr || directory_ || !isWritable() || buffer.empty())
                     {

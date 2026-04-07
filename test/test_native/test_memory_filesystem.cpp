@@ -12,7 +12,7 @@ using lumalink::platform::filesystem::FileHandle;
 using lumalink::platform::filesystem::FileOpenMode;
 using lumalink::platform::filesystem::IFileSystem;
 using lumalink::platform::memory::MemoryFileSystem;
-using lumalink::platform::util::span;
+using lumalink::span;
 
 static int ReadByte(lumalink::platform::filesystem::IFile &file)
 {

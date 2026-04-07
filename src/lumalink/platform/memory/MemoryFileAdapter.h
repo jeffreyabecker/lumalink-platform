@@ -377,7 +377,7 @@ namespace lumalink::platform::memory
             return AvailableBytes(node_->data.size() - position_);
         }
 
-        size_t read(lumalink::platform::util::span<uint8_t> buffer) override
+        size_t read(lumalink::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -391,7 +391,7 @@ namespace lumalink::platform::memory
             return toCopy;
         }
 
-        size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
+        size_t peek(lumalink::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -404,7 +404,7 @@ namespace lumalink::platform::memory
             return toCopy;
         }
 
-        std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
+        std::size_t write(lumalink::span<const uint8_t> buffer) override
         {
 
             if (mode_ == FileOpenMode::Read)

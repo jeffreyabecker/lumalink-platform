@@ -83,7 +83,7 @@ namespace lumalink::platform::arduino
                     return atEndOfFile() ? ExhaustedResult() : TemporarilyUnavailableResult();
                 }
 
-                size_t read(lumalink::platform::util::span<uint8_t> buffer) override
+                size_t read(lumalink::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -99,7 +99,7 @@ namespace lumalink::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(lumalink::platform::util::span<uint8_t> buffer) override
+                size_t peek(lumalink::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -116,7 +116,7 @@ namespace lumalink::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(lumalink::platform::util::span<const uint8_t> buffer) override
+                std::size_t write(lumalink::span<const uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isWritable() || buffer.empty())
                     {

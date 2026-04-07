@@ -617,11 +617,9 @@ public:
 
 #endif // TCB_SPAN_HPP_INCLUDED
 
-// Provide a compatibility alias so existing code can use
-// `lumalink::platform::util::span` and `lumalink::platform::util::dynamic_extent`.
-namespace lumalink { namespace platform { namespace util {
-	using ::TCB_SPAN_NAMESPACE_NAME::span;
+namespace lumalink {
 	using ::TCB_SPAN_NAMESPACE_NAME::dynamic_extent;
-}}}
+	using ::TCB_SPAN_NAMESPACE_NAME::span;
+}
 
 

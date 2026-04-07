@@ -29,7 +29,6 @@ namespace httpadv
             using namespace httpadv::v1::pipeline;
             using namespace httpadv::v1::response;
             using namespace lumalink::platform::buffers;
-            using namespace lumalink::platform::util;
             using namespace lumalink::platform::transport;
             struct CapturedResponse
             {

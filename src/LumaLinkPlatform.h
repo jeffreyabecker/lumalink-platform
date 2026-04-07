@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lumalink/Span.h"
+#include "lumalink/span.hpp"
 
 #include "lumalink/platform/buffers/Buffers.h"
 #include "lumalink/platform/buffers/Availability.h"

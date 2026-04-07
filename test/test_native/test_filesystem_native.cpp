@@ -23,7 +23,7 @@ using NativeFSImpl = lumalink::platform::posix::PosixFS;
 using lumalink::platform::filesystem::FileHandle;
 using lumalink::platform::filesystem::FileOpenMode;
 using lumalink::platform::filesystem::IFileSystem;
-using lumalink::platform::util::span;
+using lumalink::span;
 
 static unsigned g_tempCounter = 0;
 

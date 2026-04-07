@@ -71,22 +71,22 @@ This file assumes the current plan is still in force:
 ### Transport Implementations
 
 - [ ] Rewrite `src/httpadv/v1/platform/TransportFactory.h` into the new namespace and include layout.
-- [ ] Port `src/httpadv/v1/platform/posix/PosixSocketTransport.h` into the new tree.
-- [ ] Port `src/httpadv/v1/platform/windows/WindowsSocketTransport.h` into the new tree.
-- [ ] Port `src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/posix/PosixSocketTransport.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/windows/WindowsSocketTransport.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h` into the new tree.
 - [ ] Keep compile-time platform selection in this repository, but ensure it no longer depends on the old HTTP umbrella header layout.
 
 ### Filesystem Implementations
 
-- [ ] Port `src/httpadv/v1/platform/posix/PosixFileAdapter.h` into the new tree.
-- [ ] Port `src/httpadv/v1/platform/windows/WindowsFileAdapter.h` into the new tree.
-- [ ] Port `src/httpadv/v1/platform/arduino/ArduinoFileAdapter.h` into the new tree.
-- [ ] Port `src/httpadv/v1/platform/memory/MemoryFileAdapter.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/posix/PosixFileAdapter.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/windows/WindowsFileAdapter.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/arduino/ArduinoFileAdapter.h` into the new tree.
+- [x] Port `src/httpadv/v1/platform/memory/MemoryFileAdapter.h` into the new tree.
 - [ ] Decide on the final namespace layout for concrete adapters, for example whether `lumalink::platform::posix` and similar namespaces remain public.
 
 ### Cleanup Of Raw Imports
 
-- [ ] Remove copied headers from the temporary `src/httpadv/v1/` import tree once equivalent `lumalink/platform/...` headers exist.
+- [x] Remove copied headers from the temporary `src/httpadv/v1/` import tree once equivalent `lumalink/platform/...` headers exist. (Note: `src/imported` still contains non-platform files and was not removed entirely.)
 - [ ] Confirm that no public includes in this repo still require `httpadv/v1` paths.
 - [ ] Confirm that no source in this repo still declares `httpadv::v1` namespaces.
 

@@ -1,7 +1,7 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
 #include "../../src/httpadv/v1/HttpServerAdvanced.h"
-#include "../../src/httpadv/v1/transport/TransportTraits.h"
+#include "../../src/lumalink/platform/transport/TransportTraits.h"
 
 #include <unity.h>
 

@@ -59,11 +59,12 @@ namespace lumalink::platform::transport
 
 // Back-compat aliases: map old imported namespaces to the new platform namespaces
 namespace httpadv::v1::transport {
-    using AvailableBytes = lumalink::platform::buffers::AvailableBytes;
     using AvailableResult = lumalink::platform::buffers::AvailableResult;
-    using ErrorResult = lumalink::platform::buffers::ErrorResult;
-    using ExhaustedResult = lumalink::platform::buffers::ExhaustedResult;
-    using TemporarilyUnavailableResult = lumalink::platform::buffers::TemporarilyUnavailableResult;
+    inline AvailableResult AvailableBytes(std::size_t count) { return lumalink::platform::buffers::AvailableBytes(count); }
+    inline AvailableResult ErrorResult(int errorCode = 0) { return lumalink::platform::buffers::ErrorResult(errorCode); }
+    inline AvailableResult ExhaustedResult() { return lumalink::platform::buffers::ExhaustedResult(); }
+    inline AvailableResult TemporarilyUnavailableResult() { return lumalink::platform::buffers::TemporarilyUnavailableResult(); }
+
     using IClient = lumalink::platform::transport::IClient;
     using IServer = lumalink::platform::transport::IServer;
     using IPeer = lumalink::platform::transport::IPeer;

@@ -5,7 +5,9 @@
 #include "time/ManualClock.h"
 #include "time/TimeSource.h"
 
-#if defined(_WIN32)
+#if defined(ARDUINO)
+#include "./arduino/ArduinoTime.h"
+#elif defined(_WIN32)
 #include "./windows/WindowsTime.h"
 #else
 #include "./posix/PosixTime.h"
@@ -15,7 +17,11 @@ namespace lumalink::platform
 {
     namespace detail
     {
-#if defined(_WIN32)
+#if defined(ARDUINO)
+    using NativeUtcClock       = lumalink::platform::arduino::ArduinoUtcClock;
+    using NativeMonotonicClock = lumalink::platform::arduino::ArduinoMonotonicClock;
+    using NativeClock          = lumalink::platform::arduino::ArduinoClock;
+#elif defined(_WIN32)
         using NativeUtcClock       = lumalink::platform::windows::WindowsUtcClock;
         using NativeMonotonicClock = lumalink::platform::windows::WindowsMonotonicClock;
         using NativeClock          = lumalink::platform::windows::WindowsClock;
@@ -27,11 +33,14 @@ namespace lumalink::platform
     }
 
     // Platform default UTC wall-clock.
+    // On Arduino: uses the core's system UTC time after it has been populated by
+    // an external synchronizer such as Arduino-Pico's WiFi NTP client.
     // On POSIX: uses clock_gettime(CLOCK_REALTIME).
     // On Windows: uses GetSystemTimeAsFileTime.
     using UtcClock = detail::NativeUtcClock;
 
     // Platform default monotonic clock.
+    // On Arduino: uses millis().
     // On POSIX: uses clock_gettime(CLOCK_MONOTONIC).
     // On Windows: uses QueryPerformanceCounter.
     using MonotonicClock = detail::NativeMonotonicClock;

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "lumalink-platform",
+  "version": "0.0.1",
+  "description": "Platform abstractions and concrete platform adapters for lumalink HTTP libraries",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": [
+    "LumaLinkPlatform.h"
+  ],
+  "build": {
+    "includeDir": "src",
+    "srcDir": "src",
+    "libLDFMode": "chain+",
+    "libCompatMode": "soft"
+  }
+}

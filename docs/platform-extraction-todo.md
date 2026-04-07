@@ -32,7 +32,7 @@ This file assumes the current plan is still in force:
 
 ### Buffers
 
-- [ ] Decide which imported byte-stream and availability types become the public `lumalink/platform/buffers/` contract.
+- [x] Decide which imported byte-stream and availability types become the public `lumalink/platform/buffers/` contract. (Decision: expose all imported types as public)
 - [ ] Create real headers under `src/lumalink/platform/buffers/` for the chosen contract surface.
 - [ ] Move or rewrite the required pieces from `src/httpadv/v1/transport/Availability.h` and `src/httpadv/v1/transport/ByteStream.h` into the new contract headers.
 - [ ] Rewrite namespaces from `httpadv::v1::transport` to the target `lumalink::platform` buffer namespace.

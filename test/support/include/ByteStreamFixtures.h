@@ -71,7 +71,7 @@ namespace httpadv
 
                         continue;
                     }
-
+            using namespace lumalink::platform::buffers;
                     break;
                 }
 
@@ -81,7 +81,7 @@ namespace httpadv
             class ScriptedByteSource : public IByteSource
             {
             public:
-                struct Step
+                    const std::size_t bytesRead = source.read(lumalink::platform::util::span<std::uint8_t>(buffer, sizeof(buffer)));
                 {
                     std::string text;
                     bool temporarilyUnavailable = false;
@@ -104,7 +104,7 @@ namespace httpadv
                     source.steps_.push_back({text != nullptr ? text : "", false, false});
                     return source;
                 }
-
+                        const std::size_t bytesRead = source.read(lumalink::platform::util::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
                 static ScriptedByteSource FromText(std::string_view text)
                 {
                     ScriptedByteSource source;

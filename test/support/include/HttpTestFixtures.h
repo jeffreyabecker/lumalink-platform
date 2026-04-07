@@ -28,8 +28,8 @@ namespace httpadv
             using namespace httpadv::v1::handlers;
             using namespace httpadv::v1::pipeline;
             using namespace httpadv::v1::response;
-            using namespace httpadv::v1::transport;
-            using namespace httpadv::v1::util;
+            using namespace lumalink::platform::buffers;
+            using namespace lumalink::platform::util;
             struct CapturedResponse
             {
                 HttpStatus status;

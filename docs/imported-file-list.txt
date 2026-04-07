@@ -17,4 +17,4 @@ src/imported/httpadv/v1/transport/ITransportFactory.h
 src/imported/httpadv/v1/transport/TransportInterfaces.h
 src/imported/httpadv/v1/transport/TransportTraits.h
 src/imported/httpadv/v1/util/Span.h
-src/imported/httpadv/v1/util/span.hpp
+src/imported/httpadv/v1/util/span.h

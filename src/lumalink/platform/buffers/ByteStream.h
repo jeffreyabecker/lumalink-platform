@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Availability.h"
-#include "../../span.hpp"
+#include "../../span.h"
 
 #include <algorithm>
 #include <cstddef>

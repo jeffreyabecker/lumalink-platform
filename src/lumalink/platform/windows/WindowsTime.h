@@ -25,17 +25,18 @@ namespace lumalink::platform::windows
             uli.HighPart = ft.dwHighDateTime;
 
             // FILETIME epoch is 1601-01-01; Unix epoch is 1970-01-01.
-            // Offset in 100-ns intervals: 116444736000000000.
-            static constexpr std::uint64_t kEpochDiff100ns = 116'444'736'000'000'000ULL;
+            // This is the offset in 100-nanosecond intervals from the FILETIME
+            // epoch (1601) to the Unix epoch (1970).
+            static constexpr std::uint64_t kFileTimeToUnixEpochOffset100ns = 116'444'736'000'000'000ULL;
 
-            if (uli.QuadPart < kEpochDiff100ns)
+            if (uli.QuadPart < kFileTimeToUnixEpochOffset100ns)
             {
                 // Clock is set before the Unix epoch; return nullopt to signal
                 // that UTC time is not reliably available.
                 return std::nullopt;
             }
 
-            const std::uint64_t intervals = uli.QuadPart - kEpochDiff100ns;
+            const std::uint64_t intervals = uli.QuadPart - kFileTimeToUnixEpochOffset100ns;
             const std::uint64_t totalMs   = intervals / 10'000ULL;
 
             lumalink::platform::time::UnixTime result;

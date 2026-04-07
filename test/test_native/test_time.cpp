@@ -251,8 +251,9 @@ void test_native_monotonic_clock_advances_over_delay()
     sleepForMilliseconds(50);
     const MonotonicMillis t2 = clock.monotonicNow();
 
-    // After 50 ms the counter must have moved (give a 1 ms lower bound to
-    // tolerate scheduling jitter on slow CI machines).
+    // After 50 ms sleep the monotonic counter must have strictly advanced.
+    // We only verify t2 > t1; no minimum delta is enforced because scheduling
+    // jitter on CI machines can make the actual elapsed time vary widely.
     TEST_ASSERT_GREATER_THAN_UINT64(t1.value, t2.value);
 }
 

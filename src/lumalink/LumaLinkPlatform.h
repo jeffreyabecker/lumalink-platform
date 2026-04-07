@@ -20,4 +20,5 @@
 #include "lumalink/platform/time/Clock.h"
 #include "lumalink/platform/time/ManualClock.h"
 #include "lumalink/platform/time/TimeSource.h"
+#include "lumalink/platform/ClockFactory.h"
 

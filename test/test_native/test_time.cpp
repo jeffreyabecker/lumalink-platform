@@ -4,10 +4,8 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#include <lumalink/platform/windows/WindowsTime.h>
 #else
 #include <unistd.h>
-#include <lumalink/platform/posix/PosixTime.h>
 #endif
 
 #include <cstdint>
@@ -25,15 +23,10 @@ using lumalink::platform::time::UnixTime;
 using lumalink::platform::time::UtcSynchronizer;
 using lumalink::platform::time::UtcTimeResult;
 
-#if defined(_WIN32)
-using NativeUtcClock       = lumalink::platform::windows::WindowsUtcClock;
-using NativeMonotonicClock = lumalink::platform::windows::WindowsMonotonicClock;
-using NativeClock          = lumalink::platform::windows::WindowsClock;
-#else
-using NativeUtcClock       = lumalink::platform::posix::PosixUtcClock;
-using NativeMonotonicClock = lumalink::platform::posix::PosixMonotonicClock;
-using NativeClock          = lumalink::platform::posix::PosixClock;
-#endif
+// Use the platform default aliases — no per-file #ifdef required.
+using NativeUtcClock       = lumalink::platform::UtcClock;
+using NativeMonotonicClock = lumalink::platform::MonotonicClock;
+using NativeClock          = lumalink::platform::Clock;
 
 static void sleepForMilliseconds(int ms)
 {

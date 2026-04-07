@@ -11,7 +11,7 @@
 
 #include <windows.h>
 
-#include "../PathMapper.h"
+#include "../../lumalink/platform/PathMapper.h"
 
 #include <algorithm>
 #include <fstream>

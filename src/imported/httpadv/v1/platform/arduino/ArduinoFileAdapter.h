@@ -8,7 +8,7 @@
 
 #if defined(ARDUINO) && __has_include(<FS.h>)
 #include <FS.h>
-#include "../PathMapper.h"
+#include "../../lumalink/platform/PathMapper.h"
 
 #include <optional>
 #include <utility>

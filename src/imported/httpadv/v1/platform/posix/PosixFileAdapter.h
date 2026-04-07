@@ -2,7 +2,7 @@
 
 #include "../../transport/IFileSystem.h"
 
-#include "../PathMapper.h"
+#include "../../lumalink/platform/PathMapper.h"
 
 #include <dirent.h>
 #include <sys/stat.h>

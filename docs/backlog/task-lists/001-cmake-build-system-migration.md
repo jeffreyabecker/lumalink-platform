@@ -13,17 +13,18 @@ Status legend:
 
 ## Implementation Status
 
-Current status: partially implemented — Windows/MSVC path is complete and all tests pass under CTest.
+Current status: partially implemented — Windows/MSVC path is complete, all tests pass under CTest, and all PlatformIO files have been removed.
 
-Phases 1, 2, and 3 are done for the Windows/MSVC path. The root `CMakeLists.txt` has been expanded with the `lumalink::platform` alias, `BUILD_INTERFACE`/`INSTALL_INTERFACE` include path expressions, install rules, and a `find_package`-compatible config file under `cmake/lumalinkPlatformConfig.cmake.in`. A `test/test_native/CMakeLists.txt` fetches Unity v2.6.0 via `FetchContent`, builds the test executable against all five source files, applies `/W3 /permissive-` on MSVC and `-Wall -Wextra` on GCC, links `ws2_32` via a `$<PLATFORM_ID:Windows>` generator expression, and registers the binary with CTest via `add_test`. The `tools/run_native_tests.ps1` script has been updated to invoke `cmake --build --config Debug` and `ctest -C Debug` instead of `pio test`. A `#ifndef NOMINMAX` guard was added to `WindowsSocketTransport.h` to fix `std::numeric_limits<int>::max()` failures under MSVC.
+Phases 1, 2, 3, and 5 are complete for the Windows/MSVC path. The root `CMakeLists.txt` was expanded with the `lumalink::platform` alias, `BUILD_INTERFACE`/`INSTALL_INTERFACE` include path expressions, install rules, and a `find_package`-compatible config file under `cmake/lumalinkPlatformConfig.cmake.in`. A `test/test_native/CMakeLists.txt` fetches Unity v2.6.0 via `FetchContent`, builds the test executable against all five source files, applies `/W3 /permissive-` on MSVC and `-Wall -Wextra` on GCC, links `ws2_32` via a `$<PLATFORM_ID:Windows>` generator expression, and registers the binary with CTest via `add_test`. The `tools/run_native_tests.ps1` script was replaced with a CMake/CTest wrapper. A `#ifndef NOMINMAX` guard was added to `WindowsSocketTransport.h` to fix `std::numeric_limits<int>::max()` failures under MSVC.
+
+`platformio.ini`, `library.json`, `library.properties`, and `tools/link_winsock.py` have all been deleted. The build and test suite pass cleanly after removal.
 
 All tests pass on Windows: `ctest --test-dir build -C Debug` reports 1/1 passed.
 
 What remains:
-- Linux/GCC verification (CMAKE-08, CMAKE-18)
+- Linux/GCC verification (CMAKE-08, CMAKE-14, CMAKE-18)
 - out-of-tree `find_package` smoke test (CMAKE-04)
 - documentation update (CMAKE-16)
-- PlatformIO file removal (Phase 5)
 
 ## Design Intent
 
@@ -106,10 +107,10 @@ What remains:
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-19 | todo | Remove `platformio.ini` once CMake build and test coverage is confirmed | CMAKE-17, CMAKE-18 | `platformio.ini` is deleted; no remaining tooling references PlatformIO for native builds |
-| CMAKE-20 | todo | Remove `tools/link_winsock.py` once the CMake build applies winsock linkage directly | CMAKE-07 | The Python extra-script is deleted; winsock linkage is handled exclusively by the CMake target definition |
+| CMAKE-19 | done | Remove `platformio.ini` once CMake build and test coverage is confirmed | CMAKE-17, CMAKE-18 | `platformio.ini` is deleted; no remaining tooling references PlatformIO for native builds |
+| CMAKE-20 | done | Remove `tools/link_winsock.py` once the CMake build applies winsock linkage directly | CMAKE-07 | The Python extra-script is deleted; winsock linkage is handled exclusively by the CMake target definition |
 | CMAKE-21 | done | Remove `tools/run_native_tests.ps1` or repurpose it as a thin CMake/CTest wrapper | CMAKE-15 | The PlatformIO-based PowerShell script no longer exists or no longer references `pio` |
-| CMAKE-22 | todo | Update `library.json` and `library.properties` to reflect that PlatformIO is no longer the primary build system, or remove them if they serve no downstream purpose | CMAKE-19 | Remaining Arduino-ecosystem metadata files are either accurate or deleted |
+| CMAKE-22 | done | Update `library.json` and `library.properties` to reflect that PlatformIO is no longer the primary build system, or remove them if they serve no downstream purpose | CMAKE-19 | Remaining Arduino-ecosystem metadata files are either accurate or deleted |
 
 ## Sequencing Notes
 

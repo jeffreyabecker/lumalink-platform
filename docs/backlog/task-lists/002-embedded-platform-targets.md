@@ -1,16 +1,10 @@
 # Embedded Platform Target Implementations Backlog
 
 Purpose: define and sequence the work needed to replace the Arduino SDK layer in
-`src/lumalink/platform/arduino/` with native SDK implementations for three
-embedded targets:
-
-- **Raspberry Pi Pico / Pico-W** — [pico-sdk](https://github.com/raspberrypi/pico-sdk)
-- **ESP8266** — [ESP8266 RTOS SDK](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/get-started/index.html)
-- **ESP32** — [ESP-IDF](https://github.com/espressif/esp-idf)
-
-Prerequisite: the CMake build system migration (backlog 001) must be complete.
-All three targets are delivered as independent, parallel workstreams that share
-common design decisions described below.
+the platform abstraction with native SDK implementations for Raspberry Pi Pico /
+Pico-W, ESP8266 RTOS SDK, and ESP-IDF on ESP32-family targets, while keeping
+native host builds on the CMake path and deferring non-essential embedded
+ecosystem work.
 
 Status legend:
 - `todo`: not started
@@ -19,333 +13,106 @@ Status legend:
 - `blocked`: waiting on dependency
 - `deferred`: intentionally postponed
 
----
-
-## Background
-
-The current Arduino layer lives entirely in three headers:
-
-| File | Arduino API consumed |
-|---|---|
-| `platform/arduino/ArduinoTime.h` | `millis()`, `time()`, `NTP` (arduino-pico / ESP8266 / WiFiNTP) |
-| `platform/arduino/ArduinoWiFiTransport.h` | `WiFiClient`, `WiFiServer`, `WiFiUDP`, `IPAddress` |
-| `platform/arduino/ArduinoFileAdapter.h` | `FS`, `File` (`LittleFS`, `SPIFFS`, etc.) |
-
-Factory dispatch is in two headers that select the implementation at
-preprocessor time:
-
-| File | `#if` guard resolved |
-|---|---|
-| `platform/ClockFactory.h` | `ARDUINO` → `ArduinoClock` |
-| `platform/TransportFactory.h` | `ARDUINO` → `ArduinoWiFiTransportFactory` |
-
-Each target workstream below replaces the Arduino branch with a native-SDK
-branch in each of these five files, adds a new `platform/<target>/` directory,
-and wires a CMake toolchain / build integration.
-
----
-
-## Shared Design Decisions
-
-These rules apply to all three target workstreams.
-
-### Platform detection macros
-
-Use the SDK-provided detection symbols rather than inventing project-specific
-ones. Precedence in factory `#if` chains must be established before the generic
-`ARDUINO` fallback is removed:
-
-| Target | Reliable detection guard |
-|---|---|
-| Pico / Pico-W | `PICO_SDK_VERSION_MAJOR` (defined by pico-sdk headers) |
-| ESP32 (ESP-IDF) | `ESP_PLATFORM` and `CONFIG_IDF_TARGET_ESP32` (or family variants) |
-| ESP8266 (RTOS SDK) | `ESP_PLATFORM` and `CONFIG_IDF_TARGET_ESP8266` |
-
-The factory headers become a cascade:
-
-```
-#if defined(PICO_SDK_VERSION_MAJOR)
-  // pico
-#elif defined(ESP_PLATFORM) && defined(CONFIG_IDF_TARGET_ESP8266)
-  // esp8266
-#elif defined(ESP_PLATFORM)
-  // esp32 family
-#elif defined(ARDUINO)
-  // legacy arduino fallback — removed once all targets are implemented
-#elif defined(_WIN32)
-  // windows native
-#else
-  // posix native
-#endif
-```
-
-### WiFi / network initialisation lifecycle
-
-The transport factory does not own WiFi or network stack initialisation; that is
-the responsibility of the application layer before constructing a
-`TransportFactory`. The platform-specific implementation headers must document
-this contract explicitly with a comment.
-
-### Filesystem VFS shortcut (ESP targets)
-
-Both ESP8266 RTOS SDK and ESP-IDF expose a POSIX-compatible VFS layer. After a
-VFS partition is registered (`esp_vfs_spiffs_register`,
-`esp_vfs_littlefs_register`, or `esp_vfs_fat_spiflash_mount`), the existing
-`platform/posix/PosixFileAdapter.h` can be reused directly without a new
-adapter class. The ESP filesystem tasks below are therefore lighter: mount
-configuration and documentation, not new adapter code.
-
-### Integer time arithmetic
-
-All monotonic clock implementations must return `MonotonicMillis` as an integer
-(`uint64_t` milliseconds). Do not accumulate floating-point intermediate values
-in the conversion from the SDK's native tick or microsecond counter.
-
----
-
-## Workstream A — Raspberry Pi Pico / Pico-W (pico-sdk)
-
-### A1 — CMake toolchain and build integration  `todo`
-
-- Add `cmake/toolchains/pico.cmake` that sets `PICO_SDK_PATH` from an
-  environment variable or CMake cache entry and includes
-  `pico_sdk_import.cmake`.
-- Add a top-level CMake option `LUMALINK_TARGET_PICO` (OFF by default) that
-  activates the Pico toolchain and links the required pico-sdk components:
-  `pico_stdlib`, `pico_time`, `hardware_rtc`, and (when Pico-W) `pico_cyw43_arch_lwip`.
-- The library target must not pull in pico-sdk headers unless
-  `LUMALINK_TARGET_PICO` is ON.
-
-### A2 — Monotonic clock (`PicoMonotonicClock`)  `todo`
-
-- Add `platform/pico/PicoTime.h`.
-- `PicoMonotonicClock::monotonicNow()` returns
-  `MonotonicMillis{to_ms_since_boot()}` using `<pico/time.h>`.
-- `to_ms_since_boot()` returns `uint32_t` and wraps at ~49 days; the adapter
-  must cast to `uint64_t` before returning. A wrap-detection extension is
-  deferred; document the limitation.
-
-### A3 — UTC clock (`PicoUtcClock`)  `todo`
-
-- Add `PicoUtcClock` to `platform/pico/PicoTime.h`.
-- The Pico base board has no RTC oscillator; `utcNow()` returns `std::nullopt`
-  until the application sets the time via the settable-clock interface or an
-  NTP sync writes through the hardware RTC.
-- On Pico-W: when `pico_cyw43_arch_lwip` is linked, expose a `beginSntp()`
-  helper that calls `sntp_setservername` and `sntp_init()` (lwIP's SNTP
-  client). The SNTP callback writes the received time and makes `utcNow()`
-  available.
-- The Pico hardware RTC (`hardware_rtc`) provides the backing store;
-  `rtc_get_datetime()` converts to `UnixTime`. Implement the conversion using
-  standard `<ctime>` (`std::mktime` on a `tm` struct).
-- `PicoClock` aggregates `PicoMonotonicClock` and `PicoUtcClock`.
-
-### A4 — Transport (`PicoLwipTransportFactory`) — Pico-W only  `todo`
-
-- Add `platform/pico/PicoLwipTransport.h`.
-- Pico-W exposes BSD socket headers via `<lwip/sockets.h>` and
-  `<lwip/netdb.h>`. The implementation is structurally identical to
-  `PosixSocketTransport` but must include the lwIP headers rather than the POSIX
-  ones.
-- Factor out the common BSD socket logic into a shared internal template or
-  non-owning base class in `platform/posix/BsdSocketTransport.h` that can be
-  included by both the POSIX and Pico implementations. The refactor is scoped
-  to this task only; do not touch Windows transport.
-- `PicoLwipTransportFactory` satisfies `IsStaticTransportFactoryV`.
-- Document that `cyw43_arch_init()` and network bring-up must complete before
-  the factory is used.
-- The bare Pico (no WiFi) has no socket transport; `ClockFactory.h` and
-  `TransportFactory.h` must guard the transport selection on
-  `PICO_CYW43_SUPPORTED` in addition to `PICO_SDK_VERSION_MAJOR`.
-
-### A5 — Filesystem  `todo`
-
-- Pico-sdk does not ship LittleFS; the de-facto library is
-  [littlefs-lib](https://github.com/lurk101/pico-littlefs) or the upstream
-  [littlefs](https://github.com/littlefs-project/littlefs) adapted for RP2040
-  flash.
-- Add `platform/pico/PicoLittleFsAdapter.h` wrapping `lfs_file_open`,
-  `lfs_file_read`, `lfs_file_write`, `lfs_file_close`, `lfs_stat`,
-  `lfs_dir_open`, `lfs_dir_read` to implement `IFile` and `IFileSystem`.
-- LittleFS has no POSIX VFS bridge on Pico; the adapter must be written
-  directly against the littlefs C API.
-- Path normalisation reuses `PosixPathMapper` (already platform-independent).
-
-### A6 — Factory dispatch update  `todo`
-
-- Update `ClockFactory.h` to add the `PICO_SDK_VERSION_MAJOR` branch selecting
-  `pico::PicoClock`, `pico::PicoMonotonicClock`, `pico::PicoUtcClock`.
-- Update `TransportFactory.h` to add the `PICO_SDK_VERSION_MAJOR` /
-  `PICO_CYW43_SUPPORTED` branch selecting `pico::PicoLwipTransportFactory`.
-- Add a `FileSystemFactory.h` (new file) that dispatches filesystem adapters
-  with the same `#if` cascade if one does not already exist.
-
----
-
-## Workstream B — ESP8266 (ESP8266 RTOS SDK)
-
-### B1 — CMake toolchain and build integration  `todo`
-
-- Add `cmake/toolchains/esp8266.cmake` that sets the Xtensa GCC cross-compiler
-  from `$ENV{IDF_PATH}` (ESP8266 RTOS SDK uses a distinct toolchain from
-  ESP-IDF).
-- The ESP8266 RTOS SDK uses a `make menuconfig` / `idf.py` (legacy) build
-  model rather than modern ESP-IDF CMake components. Provide a
-  `cmake/esp8266_component.cmake` helper that wraps the SDK's
-  `idf_component_register` shim so this library can be registered as an IDF
-  component.
-- Add a top-level option `LUMALINK_TARGET_ESP8266` (OFF by default).
-
-### B2 — Monotonic clock (`Esp8266MonotonicClock`)  `todo`
-
-- Add `platform/esp8266/Esp8266Time.h`.
-- Use `esp_timer_get_time()` (returns `int64_t` microseconds since boot) from
-  `<esp_timer.h>` and divide by 1000 using integer arithmetic to produce
-  `MonotonicMillis`.
-- Alternatively, `xTaskGetTickCount() * portTICK_PERIOD_MS` from FreeRTOS gives
-  a millisecond tick directly at the cost of tick resolution; prefer
-  `esp_timer_get_time` for higher accuracy.
-
-### B3 — UTC clock (`Esp8266UtcClock`)  `todo`
-
-- Add `Esp8266UtcClock` to `platform/esp8266/Esp8266Time.h`.
-- The ESP8266 RTOS SDK ships an SNTP client (`<apps/sntp/sntp.h>`).
-  After `sntp_setservername()` and `sntp_init()`, `time(nullptr)` returns the
-  synchronized UTC time.
-- `utcNow()` validates the result against `kMinimumSaneUnixTime` (reuse
-  or reference the constant from `arduino::detail`) before returning.
-- Expose a `beginSntp(const char* server)` helper; document that the caller
-  must have brought up the WiFi stack before calling it.
-- `Esp8266Clock` aggregates `Esp8266MonotonicClock` and `Esp8266UtcClock`.
-
-### B4 — Transport (`Esp8266SocketTransportFactory`)  `todo`
-
-- The ESP8266 RTOS SDK exposes BSD sockets (`<sys/socket.h>`, `<netdb.h>`)
-  through lwIP's socket compat layer. The implementation can share the BSD
-  socket base introduced in A4 if workstream A has already landed; otherwise
-  implement independently using the same pattern as `PosixSocketTransport`.
-- Add `platform/esp8266/Esp8266SocketTransport.h`.
-- No VFS-level initialisation is required for sockets; document that the
-  application must have completed WiFi and TCP/IP initialisation via
-  `tcpip_adapter_init()` / `esp_netif_init()`.
-
-### B5 — Filesystem  `todo`
-
-- Register a SPIFFS partition with `esp_vfs_spiffs_register()` to mount it
-  under a POSIX path (e.g., `/spiffs`).
-- After mount, the existing `platform/posix/PosixFileAdapter.h` satisfies the
-  `IFileSystem` contract without modification.
-- Add a thin `platform/esp8266/Esp8266Filesystem.h` that provides an
-  `Esp8266SpiffsFilesystem` factory function:
-  `std::unique_ptr<IFileSystem> MountSpiffs(const esp_vfs_spiffs_conf_t& conf)`
-  which calls `esp_vfs_spiffs_register`, checks the result, constructs and
-  returns a `PosixFileSystem` rooted at `conf.base_path`.
-- Document that `esp_vfs_littlefs_register` is a drop-in alternative; the
-  factory function design is the same.
-
-### B6 — Factory dispatch update  `todo`
-
-- Update `ClockFactory.h` and `TransportFactory.h` with the
-  `ESP_PLATFORM && CONFIG_IDF_TARGET_ESP8266` branch.
-- The filesystem factory (see A6) gains an ESP8266 branch; it cannot use the
-  VFS adapter without a registered mount, so the factory dispatches to
-  `Esp8266SpiffsFilesystem` (caller provides mount config at startup).
-
----
-
-## Workstream C — ESP32 (ESP-IDF)
-
-### C1 — CMake toolchain and build integration  `todo`
-
-- Add `cmake/toolchains/esp32.cmake` that configures the Xtensa (ESP32) or
-  RISC-V (ESP32-C3) cross-compiler from `$ENV{IDF_PATH}`.
-- ESP-IDF uses its own CMake build system (`idf.py build`). Provide a
-  `cmake/esp32_component.cmake` helper similar to the ESP8266 one registering
-  the library as a component with `idf_component_register`.
-- Add a top-level option `LUMALINK_TARGET_ESP32` (OFF by default).
-- The ESP32 family covers multiple silicon variants (ESP32, S2, S3, C3, H2);
-  all use the same ESP-IDF API surface targeted here. No per-variant
-  specialisation is required at this stage.
-
-### C2 — Monotonic clock (`Esp32MonotonicClock`)  `todo`
-
-- Add `platform/esp32/Esp32Time.h`.
-- Use `esp_timer_get_time()` from `<esp_timer.h>` (same API as ESP8266 RTOS
-  SDK); return `MonotonicMillis{static_cast<uint64_t>(esp_timer_get_time()) / 1000}`.
-- Integer division; no floating point.
-
-### C3 — UTC clock (`Esp32UtcClock`)  `todo`
-
-- Add `Esp32UtcClock` to `platform/esp32/Esp32Time.h`.
-- Use `esp_sntp_init()` / `esp_sntp_setservername()` from `<esp_sntp.h>` (the
-  modern ESP-IDF SNTP API since IDF v5; fall back to `<lwip/apps/sntp.h>` for
-  IDF v4).
-- After SNTP sync, `time(nullptr)` is valid; validate against
-  `kMinimumSaneUnixTime`.
-- Expose `beginSntp(const char* server)` with the same contract as ESP8266.
-- `Esp32Clock` aggregates both.
-
-### C4 — Transport (`Esp32SocketTransportFactory`)  `todo`
-
-- ESP-IDF exposes full BSD sockets via `<sys/socket.h>` and `<netdb.h>` through
-  `esp_netif` + lwIP. The implementation shares the BSD socket base (A4) or is
-  copied from the POSIX implementation with adjusted includes.
-- Add `platform/esp32/Esp32SocketTransport.h`.
-- Document that `esp_netif_init()`, `esp_event_loop_create_default()`, and WiFi
-  / Ethernet bring-up must complete before the factory is used.
-
-### C5 — Filesystem  `todo`
-
-- Same VFS shortcut as ESP8266 (B5).
-- Add `platform/esp32/Esp32Filesystem.h` providing `MountSpiffs` and
-  `MountFat` factory functions using `esp_vfs_spiffs_register` and
-  `esp_vfs_fat_spiflash_mount` respectively; both return a
-  `PosixFileSystem` rooted at the registered base path.
-- Document that `esp_vfs_littlefs_register` (via `idf_component_manager`
-  component `joltwallet/littlefs`) is a supported alternative.
-
-### C6 — Factory dispatch update  `todo`
-
-- Update `ClockFactory.h` and `TransportFactory.h` with the `ESP_PLATFORM`
-  (without `CONFIG_IDF_TARGET_ESP8266`) branch selecting ESP32 types.
-- The filesystem factory for ESP32 mirrors the ESP8266 entry point; both
-  dispatch to their respective `Mount*` helpers.
-
----
-
-## Cross-cutting Tasks
-
-### X1 — Remove the `ARDUINO` branch from factory headers  `todo`
-
-After all three native-SDK workstreams are complete and verified, remove the
-`ARDUINO` branch from `ClockFactory.h` and `TransportFactory.h`. The
-`platform/arduino/` directory is then dead code and should be deleted.
-
-Defer this task until the last workstream passes an integration build to avoid
-breaking the Arduino path prematurely.
-
-### X2 — BSD socket shared base (if not already done in A4)  `todo`
-
-If workstream A is delivered after B or C, factor out the common BSD socket
-logic shared by POSIX, ESP8266, ESP32, and Pico-W implementations to eliminate
-duplication. The shared base lives in `platform/posix/BsdSocketTransportBase.h`
-(a class template or CRTP base, not a full implementation class).
-
-### X3 — CMake preset integration  `todo`
-
-Add a `CMakePresets.json` (or extend an existing one) with configure presets
-for each embedded target: `pico`, `esp8266`, `esp32`. Each preset sets the
-corresponding `LUMALINK_TARGET_*` option and points to the matching toolchain
-file. This gives contributors a single entry point for each embedded build.
-
----
+## Implementation Status
+
+Current status: not started.
+
+The current embedded-facing layer is still the Arduino implementation under
+`src/lumalink/platform/arduino/`. Platform selection is handled by factory
+headers that dispatch on `ARDUINO`, `_WIN32`, and the default POSIX path. No
+native SDK implementation exists yet for Pico, ESP8266 RTOS SDK, or ESP-IDF.
+
+The current Arduino API surface is concentrated in:
+
+- `src/lumalink/platform/arduino/ArduinoTime.h`
+- `src/lumalink/platform/arduino/ArduinoWiFiTransport.h`
+- `src/lumalink/platform/arduino/ArduinoFileAdapter.h`
+- `src/lumalink/platform/ClockFactory.h`
+- `src/lumalink/platform/TransportFactory.h`
+
+The ESP filesystem path can likely reuse the existing POSIX filesystem adapter
+through each SDK's VFS layer. Pico does not have that shortcut and will require
+a direct filesystem adapter.
+
+## Design Intent
+
+- Replace Arduino-SDK dependencies with native target SDKs rather than adding compatibility shims.
+- Keep target detection based on SDK-provided preprocessor symbols instead of project-owned macros.
+- Preserve the existing platform abstraction boundaries: time, transport, filesystem, and factory dispatch.
+- Reuse existing platform code where the target SDK already exposes POSIX-compatible facilities.
+- Keep monotonic time integer-based throughout; do not introduce floating-point time conversion.
+- Treat WiFi and network stack startup as an application concern, not a transport-factory concern.
+
+## Scope
+
+- New embedded platform implementations under `src/lumalink/platform/pico/`, `src/lumalink/platform/esp8266/`, and `src/lumalink/platform/esp32/`
+- Embedded-target CMake toolchain integration and preset support
+- Factory dispatch changes in `ClockFactory.h`, `TransportFactory.h`, and a filesystem factory surface if needed
+- Embedded transport implementations for Pico-W, ESP8266, and ESP32
+- Embedded time implementations for all three targets
+- Filesystem integration for Pico via LittleFS and for ESP targets via VFS-backed POSIX reuse
 
 ## Non-Goals
 
-- Do not implement BLE, Bluetooth, or peripheral driver layers.
-- Do not implement WiFi credential management or provisioning.
-- Do not implement an OTA update layer.
-- Do not add Arduino-SDK compatibility shims or wrappers; the Arduino layer is
-  replaced, not extended.
-- Do not support bare Pico (no WiFi) transport; only Pico-W gets a socket
-  factory.
+- Do not implement BLE, Bluetooth, or peripheral driver layers
+- Do not implement WiFi provisioning, credential management, or connection orchestration
+- Do not implement OTA update infrastructure
+- Do not preserve the Arduino layer as a long-term supported compatibility target
+- Do not add a transport path for bare Pico without WiFi support
+
+## Architectural Rules
+
+- Use SDK-defined feature-detection macros: `PICO_SDK_VERSION_MAJOR`, `ESP_PLATFORM`, and `CONFIG_IDF_TARGET_*`.
+- Establish deterministic factory `#if` precedence before removing the `ARDUINO` branch.
+- Reuse `platform/posix/PosixFileAdapter.h` for ESP targets after VFS mount registration instead of creating parallel filesystem adapters.
+- Factor shared BSD-socket logic once it is needed across more than one embedded target; do not duplicate transport code indefinitely.
+- Keep embedded platform headers from polluting unrelated native builds; target SDK headers must only be visible when that target is enabled.
+- FileSystem factory dispatch must follow the same platform-selection strategy as the clock and transport factories.
+
+## Work Phases
+
+## Phase 1 - Shared Platform Architecture
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| EMBED-01 | todo | Define the embedded target detection and factory-dispatch precedence using `PICO_SDK_VERSION_MAJOR`, `ESP_PLATFORM && CONFIG_IDF_TARGET_ESP8266`, `ESP_PLATFORM`, `ARDUINO`, `_WIN32`, and POSIX fallback | none | The intended factory cascade is documented and accepted as the authoritative platform-selection order for all embedded work |
+| EMBED-02 | todo | Add or define a filesystem factory dispatch surface aligned with the existing clock and transport factory pattern | EMBED-01 | A documented and implemented factory entry point exists for selecting filesystem adapters by platform without ad-hoc call-site branching |
+| EMBED-03 | todo | Document and enforce the rule that WiFi and network stack initialization is application-owned rather than transport-factory-owned | EMBED-01 | Each embedded transport implementation documents its network initialization prerequisites and no factory code attempts to provision WiFi |
+
+## Phase 2 - Raspberry Pi Pico / Pico-W
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| EMBED-04 | todo | Add `cmake/toolchains/pico.cmake` and a top-level `LUMALINK_TARGET_PICO` option that activates Pico SDK integration without affecting unrelated builds | EMBED-01 | Pico-specific CMake configuration is isolated behind the option, imports `pico_sdk_import.cmake`, and only adds Pico headers and libraries when enabled |
+| EMBED-05 | todo | Implement `platform/pico/PicoTime.h` with `PicoMonotonicClock`, `PicoUtcClock`, and aggregate `PicoClock` | EMBED-04 | `monotonicNow()` returns integer milliseconds from `<pico/time.h>`, `utcNow()` uses RTC-backed state, and Pico-W SNTP support is exposed through an explicit helper |
+| EMBED-06 | todo | Implement `platform/pico/PicoLwipTransport.h` for Pico-W using lwIP BSD sockets and gate transport availability on `PICO_CYW43_SUPPORTED` | EMBED-04, EMBED-03 | Pico-W transport satisfies the transport-factory contract, requires prior network bring-up, and the bare Pico path does not falsely expose socket transport |
+| EMBED-07 | todo | Implement `platform/pico/PicoLittleFsAdapter.h` against the LittleFS C API for Pico storage | EMBED-04, EMBED-02 | Pico filesystem support provides `IFile` and `IFileSystem` implementations without relying on a POSIX VFS bridge |
+| EMBED-08 | todo | Wire Pico clock, transport, and filesystem implementations into the platform factories | EMBED-05, EMBED-06, EMBED-07 | Factory dispatch selects Pico types from SDK macros, including the WiFi-only transport guard for Pico-W |
+
+## Phase 3 - ESP8266 RTOS SDK
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| EMBED-09 | todo | Add `cmake/toolchains/esp8266.cmake`, target option `LUMALINK_TARGET_ESP8266`, and component-registration glue for the ESP8266 RTOS SDK build model | EMBED-01 | The library can be registered into the ESP8266 SDK build flow without affecting native-host or other embedded builds |
+| EMBED-10 | todo | Implement `platform/esp8266/Esp8266Time.h` with monotonic and UTC clocks backed by `esp_timer_get_time()` and SNTP/time APIs | EMBED-09 | Monotonic time is integer-based, UTC is validated before use, and SNTP setup is explicit rather than automatic |
+| EMBED-11 | todo | Implement `platform/esp8266/Esp8266SocketTransport.h` using the SDK's BSD socket compatibility layer | EMBED-09, EMBED-03 | ESP8266 transport satisfies the transport factory and documents that network stack initialization must be complete before use |
+| EMBED-12 | todo | Add `platform/esp8266/Esp8266Filesystem.h` that mounts SPIFFS or LittleFS through VFS and returns a POSIX-backed filesystem instance | EMBED-09, EMBED-02 | ESP8266 filesystem support reuses `PosixFileAdapter.h` after successful VFS registration and does not duplicate filesystem adapter logic |
+| EMBED-13 | todo | Wire ESP8266 clock, transport, and filesystem support into the platform factories | EMBED-10, EMBED-11, EMBED-12 | Factory dispatch recognizes `ESP_PLATFORM && CONFIG_IDF_TARGET_ESP8266` and routes to ESP8266 types consistently |
+
+## Phase 4 - ESP32 / ESP-IDF
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| EMBED-14 | todo | Add `cmake/toolchains/esp32.cmake`, target option `LUMALINK_TARGET_ESP32`, and ESP-IDF component-registration integration | EMBED-01 | The library can be consumed as an ESP-IDF component for ESP32-family targets without altering non-ESP builds |
+| EMBED-15 | todo | Implement `platform/esp32/Esp32Time.h` with monotonic and UTC clocks backed by `esp_timer_get_time()` and ESP-IDF SNTP APIs | EMBED-14 | Monotonic time remains integer-based, UTC is only surfaced after sane-time validation, and the implementation handles the supported ESP-IDF API surface |
+| EMBED-16 | todo | Implement `platform/esp32/Esp32SocketTransport.h` using ESP-IDF BSD sockets | EMBED-14, EMBED-03 | ESP32 transport integrates with the transport factory and documents required `esp_netif` and event-loop initialization prerequisites |
+| EMBED-17 | todo | Add `platform/esp32/Esp32Filesystem.h` providing VFS-backed filesystem mount helpers for SPIFFS and FAT | EMBED-14, EMBED-02 | ESP32 filesystem support returns POSIX-backed filesystem objects after successful VFS registration and supports the intended mount variants |
+| EMBED-18 | todo | Wire ESP32 clock, transport, and filesystem support into the platform factories | EMBED-15, EMBED-16, EMBED-17 | Factory dispatch recognizes the non-ESP8266 `ESP_PLATFORM` path and selects ESP32-family types consistently |
+
+## Phase 5 - Cross-Cutting Refactors And Cleanup
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| EMBED-19 | todo | Factor shared BSD socket transport behavior into `platform/posix/BsdSocketTransportBase.h` or equivalent once at least two embedded targets need it | EMBED-06, EMBED-11, EMBED-16 | Shared socket logic is centralized without widening the Windows transport scope or introducing an unnecessary inheritance hierarchy |
+| EMBED-20 | todo | Add `CMakePresets.json` entries for `pico`, `esp8266`, and `esp32` configure flows | EMBED-04, EMBED-09, EMBED-14 | Each embedded target has a named configure preset that sets the corresponding target option and toolchain file |
+| EMBED-21 | todo | Remove the `ARDUINO` branch from the platform factories and delete `src/lumalink/platform/arduino/` after all replacement targets are implemented and verified | EMBED-08, EMBED-13, EMBED-18 | Factory headers no longer reference Arduino, the Arduino platform directory is removed, and no embedded target regresses as a result |

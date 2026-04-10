@@ -1,9 +1,9 @@
 #pragma once
 
-#include "time/ClockTypes.h"
-#include "time/Clock.h"
-#include "time/ManualClock.h"
-#include "time/TimeSource.h"
+#include "lumalink/time/ClockTypes.h"
+#include "lumalink/time/Clock.h"
+#include "lumalink/time/ManualClock.h"
+#include "lumalink/time/TimeSource.h"
 
 #if defined(ARDUINO)
 #include "./arduino/ArduinoTime.h"

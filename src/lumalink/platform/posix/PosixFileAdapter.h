@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../filesystem/FileSystem.h"
+#include "lumalink/filesystem/FileSystem.h"
 
-#include "../PathMapper.h"
+#include "lumalink/path/PathMapper.h"
 
 #include <dirent.h>
 #include <sys/stat.h>

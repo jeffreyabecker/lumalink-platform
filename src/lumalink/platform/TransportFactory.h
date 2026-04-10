@@ -5,8 +5,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "transport/TransportInterfaces.h"
-#include "transport/TransportTraits.h"
+#include "lumalink/transport/TransportInterfaces.h"
+#include "lumalink/transport/TransportTraits.h"
 #ifdef ARDUINO
 #include "./arduino/ArduinoWiFiTransport.h"
 #elif defined(_WIN32)

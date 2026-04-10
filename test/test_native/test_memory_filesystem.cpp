@@ -1,6 +1,6 @@
 #include <unity.h>
 
-#include <lumalink/platform/memory/MemoryFileAdapter.h>
+#include <lumalink/filesystem/MemoryFileAdapter.h>
 
 #include <cstdint>
 #include <memory>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../transport/TransportInterfaces.h"
+#include "lumalink/transport/TransportInterfaces.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>

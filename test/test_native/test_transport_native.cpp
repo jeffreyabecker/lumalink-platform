@@ -2,7 +2,7 @@
 
 #include <LumaLinkPlatform.h>
 
-#include <lumalink/platform/transport/TransportTraits.h>
+#include <lumalink/transport/TransportTraits.h>
 
 #if defined(_WIN32)
 #include <winsock2.h>

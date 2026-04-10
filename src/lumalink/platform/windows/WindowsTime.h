@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../time/Clock.h"
-#include "../time/ClockTypes.h"
+#include "lumalink/time/Clock.h"
+#include "lumalink/time/ClockTypes.h"
 
 #include <windows.h>
 

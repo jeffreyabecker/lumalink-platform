@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../filesystem/FileSystem.h"
+#include "lumalink/filesystem/FileSystem.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -11,7 +11,7 @@
 
 #include <windows.h>
 
-#include "../PathMapper.h"
+#include "lumalink/path/PathMapper.h"
 
 #include <algorithm>
 #include <fstream>

@@ -14,7 +14,12 @@ Status legend:
 
 ## Implementation Status
 
-Current status: backlog defined, implementation not started.
+Current status: planning complete for `MODLAY-01` through `MODLAY-03`, and the
+shared-surface move from `MODLAY-04` has landed with forwarding compatibility
+headers retained under `src/lumalink/platform/`.
+
+Planning decisions are recorded in
+`docs/pre-modules-native-layout-plan.md`.
 
 A draft downstream migration guide exists in
 `docs/upgrading-pre-modules-native-layout.md`, but it should be treated as a
@@ -85,15 +90,15 @@ all translation units see all platform headers.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| MODLAY-01 | todo | Inventory the current shared, Windows-native, POSIX-native, and embedded-only headers under `src/lumalink/platform/` and classify which ones are contracts versus concrete implementations | none | A checked-in design note or backlog appendix records the header ownership map and identifies which files are expected to move versus remain shared |
-| MODLAY-02 | todo | Define the target boundary plan for shared contracts, native-common code, Windows-native code, POSIX-native code, and embedded code under CMake | MODLAY-01 | The intended target graph and include-path ownership are documented and accepted as the implementation plan for the restructuring |
-| MODLAY-03 | todo | Decide the destination naming and root structure for the pre-modules layout, including whether facades live under a dedicated `facade/` root or remain at the current public paths as forwarding headers | MODLAY-02 | A specific directory layout is chosen and recorded so file moves can proceed without naming churn |
+| MODLAY-01 | done | Inventory the current shared, Windows-native, POSIX-native, and embedded-only headers under `src/lumalink/platform/` and classify which ones are contracts versus concrete implementations | none | Completed in `docs/pre-modules-native-layout-plan.md` |
+| MODLAY-02 | done | Define the target boundary plan for shared contracts, native-common code, Windows-native code, POSIX-native code, and embedded code under CMake | MODLAY-01 | Completed in `docs/pre-modules-native-layout-plan.md` |
+| MODLAY-03 | done | Decide the destination naming and root structure for the pre-modules layout, including whether facades live under a dedicated `facade/` root or remain at the current public paths as forwarding headers | MODLAY-02 | Completed in `docs/pre-modules-native-layout-plan.md` |
 
 ## Phase 2 - Shared Surface Extraction
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| MODLAY-04 | todo | Move platform-agnostic contracts and helpers into explicit shared roots such as `core/`, `path/`, `buffers/`, `filesystem/`, `transport/`, and `time/` without changing behavior | MODLAY-03 | Shared headers live outside mixed native implementation directories, existing includes are updated or forwarded, and native tests still pass |
+| MODLAY-04 | done | Move platform-agnostic contracts and helpers into explicit shared roots such as `core/`, `path/`, `buffers/`, `filesystem/`, `transport/`, and `time/` without changing behavior | MODLAY-03 | Completed by moving canonical shared headers under `src/lumalink/` roots, retaining forwarding headers under `src/lumalink/platform/`, and passing the native CTest lane |
 | MODLAY-05 | todo | Extract any native-host shared implementation helpers into a dedicated `native/common/` area if they are currently buried in platform-specific or mixed roots | MODLAY-04 | Host-only shared helpers have a clear home and are no longer duplicated or hidden behind unrelated platform directories |
 | MODLAY-06 | todo | Thin `LumaLinkPlatform.h` so it acts as a facade over the reorganized shared and selected platform surfaces rather than directly representing the old mixed tree | MODLAY-04 | The umbrella header still supports current consumers while depending on thinner, better-owned include layers |
 

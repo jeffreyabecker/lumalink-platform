@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string_view>
 
 namespace lumalink::platform::transport
@@ -45,11 +46,11 @@ namespace lumalink::platform::transport
         virtual void stop() = 0;
         virtual bool beginPacket(std::string_view address, std::uint16_t port) = 0;
         virtual bool endPacket() = 0;
-        virtual std::size_t write(lumalink::span<const std::uint8_t> buffer) = 0;
+        virtual std::size_t write(std::span<const std::uint8_t> buffer) = 0;
         virtual lumalink::platform::buffers::AvailableResult parsePacket() = 0;
         virtual lumalink::platform::buffers::AvailableResult available() = 0;
-        virtual std::size_t read(lumalink::span<std::uint8_t> buffer) = 0;
-        virtual std::size_t peek(lumalink::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t read(std::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t peek(std::span<std::uint8_t> buffer) = 0;
         virtual void flush() = 0;
         virtual std::string_view remoteAddress() const = 0;
         virtual std::uint16_t remotePort() const = 0;

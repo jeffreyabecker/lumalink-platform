@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -81,7 +82,7 @@ namespace httpadv
             class ScriptedByteSource : public IByteSource
             {
             public:
-                    const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+                    const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
                 {
                     std::string text;
                     bool temporarilyUnavailable = false;
@@ -104,7 +105,7 @@ namespace httpadv
                     source.steps_.push_back({text != nullptr ? text : "", false, false});
                     return source;
                 }
-                        const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
+                        const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
                 static ScriptedByteSource FromText(std::string_view text)
                 {
                     ScriptedByteSource source;

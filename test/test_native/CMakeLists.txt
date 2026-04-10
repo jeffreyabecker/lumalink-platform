@@ -16,6 +16,8 @@ add_executable(lumalink_platform_tests
     test_transport_native.cpp
 )
 
+target_compile_features(lumalink_platform_tests PRIVATE cxx_std_23)
+
 target_include_directories(lumalink_platform_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../support/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../support/native_arduino

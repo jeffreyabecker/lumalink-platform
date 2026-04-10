@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -12,12 +13,11 @@ using lumalink::platform::filesystem::FileHandle;
 using lumalink::platform::filesystem::FileOpenMode;
 using lumalink::platform::filesystem::IFileSystem;
 using lumalink::platform::memory::MemoryFileSystem;
-using lumalink::span;
 
 static int ReadByte(lumalink::platform::filesystem::IFile &file)
 {
     uint8_t byte = 0;
-    return file.read(span<uint8_t>(&byte, 1)) == 1 ? static_cast<int>(byte) : -1;
+    return file.read(std::span<uint8_t>(&byte, 1)) == 1 ? static_cast<int>(byte) : -1;
 }
 
 void test_memory_file_can_write_and_read()
@@ -31,7 +31,7 @@ void test_memory_file_can_write_and_read()
 
     const std::vector<uint8_t> payload = {'h', 'i', '!'};
     TEST_ASSERT_EQUAL_UINT64(payload.size(),
-        writable->write(span<const uint8_t>(payload.data(), payload.size())));
+        writable->write(std::span<const uint8_t>(payload.data(), payload.size())));
     writable->flush();
     writable->close();
 
@@ -55,7 +55,7 @@ void test_memory_directory_and_list()
     TEST_ASSERT_NOT_NULL(f.get());
     const std::vector<uint8_t> payload = {'a'};
     TEST_ASSERT_EQUAL_UINT64(1,
-        f->write(span<const uint8_t>(payload.data(), payload.size())));
+        f->write(std::span<const uint8_t>(payload.data(), payload.size())));
     f->close();
 
     std::vector<DirectoryEntry> entries;
@@ -94,7 +94,7 @@ void test_memory_rename()
     TEST_ASSERT_NOT_NULL(f.get());
     const std::vector<uint8_t> payload = {'x'};
     TEST_ASSERT_EQUAL_UINT64(1,
-        f->write(span<const uint8_t>(payload.data(), payload.size())));
+        f->write(std::span<const uint8_t>(payload.data(), payload.size())));
     f->close();
 
     TEST_ASSERT_TRUE(fs->exists("/a.txt"));

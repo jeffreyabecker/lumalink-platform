@@ -11,6 +11,7 @@
 #include <ctime>
 #include <fstream>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -23,7 +24,6 @@ using NativeFSImpl = lumalink::platform::posix::PosixFS;
 using lumalink::platform::filesystem::FileHandle;
 using lumalink::platform::filesystem::FileOpenMode;
 using lumalink::platform::filesystem::IFileSystem;
-using lumalink::span;
 
 static unsigned g_tempCounter = 0;
 
@@ -48,7 +48,7 @@ static bool CreateBinaryFile(const std::string &hostPath, const char *content)
 static int ReadByte(lumalink::platform::filesystem::IFile &file)
 {
     uint8_t byte = 0;
-    return file.read(span<uint8_t>(&byte, 1)) == 1 ? static_cast<int>(byte) : -1;
+    return file.read(std::span<uint8_t>(&byte, 1)) == 1 ? static_cast<int>(byte) : -1;
 }
 
 void test_native_file_factory_can_open_and_read_temp_file()
@@ -79,7 +79,7 @@ void test_native_file_factory_supports_directory_handles()
     TEST_ASSERT_NOT_NULL(file.get());
     TEST_ASSERT_TRUE(file->isDirectory());
     TEST_ASSERT_FALSE(file->size().has_value());
-    TEST_ASSERT_EQUAL_UINT64(0, file->read(span<uint8_t>()));
+    TEST_ASSERT_EQUAL_UINT64(0, file->read(std::span<uint8_t>()));
 }
 
 void test_native_file_factory_can_write_and_reopen_file()
@@ -94,7 +94,7 @@ void test_native_file_factory_can_write_and_reopen_file()
 
     const std::vector<uint8_t> payload = {'o', 'k'};
     TEST_ASSERT_EQUAL_UINT64(payload.size(),
-        writable->write(span<const uint8_t>(payload.data(), payload.size())));
+        writable->write(std::span<const uint8_t>(payload.data(), payload.size())));
     writable->flush();
     writable->close();
 

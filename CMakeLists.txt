@@ -6,7 +6,7 @@ project(lumalink-platform LANGUAGES CXX)
 add_library(lumalink-platform INTERFACE)
 add_library(lumalink::platform ALIAS lumalink-platform)
 
-target_compile_features(lumalink-platform INTERFACE cxx_std_17)
+target_compile_features(lumalink-platform INTERFACE cxx_std_23)
 
 target_include_directories(lumalink-platform INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>

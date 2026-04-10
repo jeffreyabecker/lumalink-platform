@@ -3,6 +3,7 @@
 #include "../transport/TransportTraits.h"
 
 #include <memory>
+#include <span>
 #include <utility>
 
 #if defined(ARDUINO)
@@ -95,11 +96,11 @@ public:
 		return detail::mapLegacyAvailable(client_.available(), client_.connected());
 	}
 
-	std::size_t read(lumalink::span<std::uint8_t> buffer) override {
+	std::size_t read(std::span<std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : client_.read(buffer.data(), buffer.size());
 	}
 
-	std::size_t peek(lumalink::span<std::uint8_t> buffer) override {
+	std::size_t peek(std::span<std::uint8_t> buffer) override {
 		if (buffer.empty()) {
 			return 0;
 		}
@@ -113,7 +114,7 @@ public:
 		return 1;
 	}
 
-	std::size_t write(lumalink::span<const std::uint8_t> buffer) override {
+	std::size_t write(std::span<const std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : client_.write(buffer.data(), buffer.size());
 	}
 
@@ -195,7 +196,7 @@ public:
 
 	bool endPacket() override { return udp_.endPacket() != 0; }
 
-	std::size_t write(lumalink::span<const std::uint8_t> buffer) override {
+	std::size_t write(std::span<const std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : udp_.write(buffer.data(), buffer.size());
 	}
 
@@ -212,11 +213,11 @@ public:
 		return detail::mapLegacyAvailable(udp_.available(), active_);
 	}
 
-	std::size_t read(lumalink::span<std::uint8_t> buffer) override {
+	std::size_t read(std::span<std::uint8_t> buffer) override {
 		return buffer.empty() ? 0 : udp_.read(buffer.data(), buffer.size());
 	}
 
-	std::size_t peek(lumalink::span<std::uint8_t> buffer) override {
+	std::size_t peek(std::span<std::uint8_t> buffer) override {
 		if (buffer.empty()) {
 			return 0;
 		}

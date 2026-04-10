@@ -14,6 +14,7 @@
 #include <cstring>
 #include <cstdint>
 #include <limits>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -306,7 +307,7 @@ public:
     return connected() ? TemporarilyUnavailableResult() : ExhaustedResult();
   }
 
-  std::size_t read(lumalink::span<std::uint8_t> buffer) override {
+  std::size_t read(std::span<std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
@@ -330,7 +331,7 @@ public:
     return 0;
   }
 
-  std::size_t peek(lumalink::span<std::uint8_t> buffer) override {
+  std::size_t peek(std::span<std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
@@ -354,7 +355,7 @@ public:
     return 0;
   }
 
-  std::size_t write(lumalink::span<const std::uint8_t> buffer) override {
+  std::size_t write(std::span<const std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
@@ -562,7 +563,7 @@ public:
     return sent >= 0;
   }
 
-  std::size_t write(lumalink::span<const std::uint8_t> buffer) override {
+  std::size_t write(std::span<const std::uint8_t> buffer) override {
     outboundPacket_.insert(outboundPacket_.end(), buffer.begin(), buffer.end());
     return buffer.size();
   }
@@ -614,7 +615,7 @@ public:
     return socket_.valid() ? TemporarilyUnavailableResult() : ExhaustedResult();
   }
 
-  std::size_t read(lumalink::span<std::uint8_t> buffer) override {
+  std::size_t read(std::span<std::uint8_t> buffer) override {
     const std::size_t copied = peek(buffer);
     inboundOffset_ += copied;
     if (inboundOffset_ >= inboundPacket_.size()) {
@@ -625,7 +626,7 @@ public:
     return copied;
   }
 
-  std::size_t peek(lumalink::span<std::uint8_t> buffer) override {
+  std::size_t peek(std::span<std::uint8_t> buffer) override {
     if (buffer.empty() || inboundOffset_ >= inboundPacket_.size()) {
       return 0;
     }

@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <span>
 #include <string>
 
 using lumalink::platform::filesystem::IFileSystem;
@@ -28,7 +29,6 @@ using lumalink::platform::transport::IClient;
 using lumalink::platform::transport::IServer;
 using lumalink::platform::transport::IPeer;
 using lumalink::platform::buffers::AvailableResult;
-using lumalink::span;
 
 #if defined(_WIN32)
 using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;
@@ -148,7 +148,7 @@ void test_native_factory_creates_tcp_server_and_client_loopback()
 
     TEST_ASSERT_TRUE(available.hasBytes());
     std::uint8_t buffer[8] = {};
-    TEST_ASSERT_EQUAL_UINT64(5, accepted->read(span<std::uint8_t>(buffer, 5)));
+    TEST_ASSERT_EQUAL_UINT64(5, accepted->read(std::span<std::uint8_t>(buffer, 5)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(
         reinterpret_cast<const std::uint8_t *>("hello"), buffer, 5);
 
@@ -162,11 +162,11 @@ void test_native_factory_creates_tcp_server_and_client_loopback()
     }
 
     TEST_ASSERT_TRUE(available.hasBytes());
-    TEST_ASSERT_EQUAL_UINT64(5, client->peek(span<std::uint8_t>(buffer, 5)));
+    TEST_ASSERT_EQUAL_UINT64(5, client->peek(std::span<std::uint8_t>(buffer, 5)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(
         reinterpret_cast<const std::uint8_t *>("world"), buffer, 5);
     std::memset(buffer, 0, sizeof(buffer));
-    TEST_ASSERT_EQUAL_UINT64(5, client->read(span<std::uint8_t>(buffer, 5)));
+    TEST_ASSERT_EQUAL_UINT64(5, client->read(std::span<std::uint8_t>(buffer, 5)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(
         reinterpret_cast<const std::uint8_t *>("world"), buffer, 5);
 
@@ -193,7 +193,7 @@ void test_native_factory_creates_udp_peers_for_loopback_packets()
     TEST_ASSERT_TRUE(sender->beginPacket("127.0.0.1", receiverPort));
     const std::uint8_t pingBytes[] = {'p', 'i', 'n', 'g'};
     TEST_ASSERT_EQUAL_UINT64(4,
-        sender->write(span<const std::uint8_t>(pingBytes, sizeof(pingBytes))));
+        sender->write(std::span<const std::uint8_t>(pingBytes, sizeof(pingBytes))));
     TEST_ASSERT_TRUE(sender->endPacket());
 
     const AvailableResult packet = parsePacketWithRetry(*receiver);
@@ -203,11 +203,11 @@ void test_native_factory_creates_udp_peers_for_loopback_packets()
     TEST_ASSERT_EQUAL_UINT16(senderPort, receiver->remotePort());
 
     std::uint8_t buffer[8] = {};
-    TEST_ASSERT_EQUAL_UINT64(4, receiver->peek(span<std::uint8_t>(buffer, 4)));
+    TEST_ASSERT_EQUAL_UINT64(4, receiver->peek(std::span<std::uint8_t>(buffer, 4)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(
         reinterpret_cast<const std::uint8_t *>("ping"), buffer, 4);
     std::memset(buffer, 0, sizeof(buffer));
-    TEST_ASSERT_EQUAL_UINT64(4, receiver->read(span<std::uint8_t>(buffer, 4)));
+    TEST_ASSERT_EQUAL_UINT64(4, receiver->read(std::span<std::uint8_t>(buffer, 4)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(
         reinterpret_cast<const std::uint8_t *>("ping"), buffer, 4);
     TEST_ASSERT_TRUE(receiver->available().isTemporarilyUnavailable());

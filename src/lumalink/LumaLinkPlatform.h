@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lumalink/span.h"
+#include <span>
 
 #include "lumalink/platform/PathMapper.h"
 #include "lumalink/platform/buffers/Availability.h"

@@ -305,6 +305,134 @@ Given the current consumer model, the second option does not need to live for
 long. If the downstream code is updated alongside the module rollout, these
 headers can be reduced aggressively or removed outright after validation.
 
+## Pre-Modules Header Restructuring
+
+Before introducing actual module interface units, the library can be reshaped
+so the source tree already reflects the boundaries the module build will want.
+That work is lower-risk than a full module rollout because it is mostly a
+layout and target-ownership change, not a language-model change.
+
+The short answer is: yes, native platform-specific code can probably be split
+into their own root folders now that CMake is the real build entry point.
+That is easier today than it would have been in a purely header-selected world,
+because CMake can decide which roots belong to which target instead of making
+every translation unit see every platform header.
+
+What CMake changes here is not just build convenience. It changes the pressure
+on the directory layout:
+
+- target include paths can be platform-specific instead of globally visible
+- native Windows and native POSIX code no longer need to coexist in one broad public-facing header subtree
+- internal implementation headers can move without immediately forcing the final public include surface to change
+- future module targets can line up with directory ownership that already exists
+
+### What To Split Now
+
+The easiest split is between shared contracts and native implementation
+families.
+
+That suggests separating:
+
+- platform-agnostic contracts and value types
+- native-host shared helpers
+- Windows-native implementations
+- POSIX-native implementations
+- embedded-only code that should stay on the header path for now
+
+A reasonable pre-modules layout could look like:
+
+```text
+src/lumalink/
+  core/
+  path/
+  buffers/
+  filesystem/
+  transport/
+  time/
+
+  native/
+    common/
+    windows/
+    posix/
+
+  embedded/
+    arduino/
+    pico/
+    esp8266/
+    esp32/
+
+  facade/
+    LumaLinkPlatform.h
+    ClockFactory.h
+    TransportFactory.h
+```
+
+Another acceptable variant is to keep the current public header names where
+they are, but move only implementation-heavy headers into native roots and make
+the old paths thin forwarding wrappers for one transition.
+
+### What Not To Split Yet
+
+I would not immediately do a full "one root folder per platform for everything"
+reorganization.
+
+That would go too far if it pulled shared contracts into duplicated platform
+trees or made the public include story more fragmented than it is today. The
+goal is to make platform ownership explicit, not to make consumers learn a new
+set of include rules before modules even exist.
+
+In particular, these should probably stay shared-first:
+
+- transport interfaces
+- filesystem interfaces
+- time abstractions
+- path mapping contracts
+- buffer/value/helper types
+
+Only the concrete host implementations and system-header-facing adapters should
+move under platform-specific roots.
+
+### Why This Helps Modules Later
+
+This restructuring would pay off even if modules were delayed.
+
+- module interface units could be created from already-separated ownership boundaries
+- CMake target definitions would become clearer because source membership would already be platform-scoped
+- public facade headers would become visibly thin, which makes them easier to replace with module exports later
+- native-only experiments could proceed without dragging embedded headers into the same dependency surface
+
+### CMake Implications
+
+If this restructuring happens before modules, CMake should become the place that
+selects implementation families instead of the headers doing all of the work.
+
+That likely means:
+
+- one shared interface/header target for platform-agnostic contracts
+- one native-common target for code shared by Windows and POSIX host builds
+- one Windows-native target
+- one POSIX-native target
+- embedded targets that continue to use the existing header path independently
+
+The current macro-based factory headers could still exist, but they would be
+thinner and would mostly delegate to a target-selected implementation surface
+instead of directly sitting on top of a wide mixed directory tree.
+
+### Recommendation
+
+So: yes, splitting the native platform codebases into their own roots is now a
+reasonable preparatory move, and CMake is exactly what makes it practical.
+
+But I would scope that move narrowly:
+
+- split native Windows and native POSIX implementation headers now
+- keep shared contracts in a platform-agnostic root
+- keep embedded code on its existing non-module path until native layout is stable
+- preserve the public umbrella/factory include surface briefly as a facade layer while the tree settles
+
+That gives most of the structural benefit needed for modules without forcing a
+full public API migration before the module work itself starts.
+
 ## Transition Plan
 
 ### Phase A: Core Contracts

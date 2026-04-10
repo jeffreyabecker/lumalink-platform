@@ -25,9 +25,12 @@
 namespace lumalink::platform::posix {
 
 using lumalink::platform::buffers::AvailableBytes;
-using lumalink::platform::buffers::AvailableResult;
+using lumalink::platform::buffers::AvailableByteCount;
+using lumalink::platform::buffers::ByteAvailability;
 using lumalink::platform::buffers::ErrorResult;
 using lumalink::platform::buffers::ExhaustedResult;
+using lumalink::platform::buffers::HasAvailabilityError;
+using lumalink::platform::buffers::HasAvailableBytes;
 using lumalink::platform::buffers::TemporarilyUnavailableResult;
 using lumalink::platform::transport::IClient;
 using lumalink::platform::transport::IPeer;
@@ -90,7 +93,7 @@ inline SocketRuntime &socketRuntime() {
   return runtime;
 }
 
-inline AvailableResult queryPendingBytes(SocketHandle handle,
+inline ByteAvailability queryPendingBytes(SocketHandle handle,
                                          bool assumeConnectedWhenNoBytes = true) {
   std::size_t pendingBytes = 0;
   if (!queryPendingByteCount(handle, pendingBytes)) {
@@ -290,13 +293,13 @@ public:
 
   std::uint32_t getTimeout() const override { return timeoutMs_; }
 
-  AvailableResult available() override {
+  ByteAvailability available() override {
     if (!socket_.valid()) {
       return ExhaustedResult();
     }
 
-    const AvailableResult pending = queryPendingBytes(socket_.get());
-    if (pending.hasBytes() || pending.hasError()) {
+    const ByteAvailability pending = queryPendingBytes(socket_.get());
+    if (HasAvailableBytes(pending) || HasAvailabilityError(pending)) {
       return pending;
     }
 
@@ -564,7 +567,7 @@ public:
     return buffer.size();
   }
 
-  AvailableResult parsePacket() override {
+  ByteAvailability parsePacket() override {
     if (!socket_.valid()) {
       return ExhaustedResult();
     }
@@ -573,16 +576,16 @@ public:
       return AvailableBytes(inboundPacket_.size() - inboundOffset_);
     }
 
-    const AvailableResult pendingBytes = queryPendingBytes(socket_.get());
-    if (pendingBytes.hasError()) {
+    const ByteAvailability pendingBytes = queryPendingBytes(socket_.get());
+    if (HasAvailabilityError(pendingBytes)) {
       return pendingBytes;
     }
 
-    if (!pendingBytes.hasBytes()) {
+    if (!HasAvailableBytes(pendingBytes)) {
       return TemporarilyUnavailableResult();
     }
 
-    std::vector<std::uint8_t> packetBuffer(pendingBytes.count);
+    std::vector<std::uint8_t> packetBuffer(AvailableByteCount(pendingBytes));
     sockaddr_storage sourceAddress{};
     socklen_t sourceAddressLength = sizeof(sourceAddress);
     const int received = recvfrom(socket_.get(), reinterpret_cast<char *>(packetBuffer.data()),
@@ -603,7 +606,7 @@ public:
     return AvailableBytes(inboundPacket_.size());
   }
 
-  AvailableResult available() override {
+  ByteAvailability available() override {
     if (inboundOffset_ < inboundPacket_.size()) {
       return AvailableBytes(inboundPacket_.size() - inboundOffset_);
     }

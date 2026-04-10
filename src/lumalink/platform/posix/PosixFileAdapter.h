@@ -20,7 +20,7 @@
 namespace lumalink::platform::posix
 {
             using lumalink::platform::buffers::AvailableBytes;
-            using lumalink::platform::buffers::AvailableResult;
+            using lumalink::platform::buffers::ByteAvailability;
             using lumalink::platform::buffers::ExhaustedResult;
             using lumalink::platform::buffers::TemporarilyUnavailableResult;
             using lumalink::platform::filesystem::DirectoryEntry;
@@ -151,7 +151,7 @@ namespace lumalink::platform::posix
                     close();
                 }
 
-                AvailableResult available() override
+                ByteAvailability available() override
                 {
                     if (directory_)
                     {

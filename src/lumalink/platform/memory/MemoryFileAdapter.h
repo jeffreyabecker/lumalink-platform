@@ -15,7 +15,7 @@
 namespace lumalink::platform::memory
 {
     using lumalink::platform::buffers::AvailableBytes;
-    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ByteAvailability;
     using lumalink::platform::buffers::ExhaustedResult;
     using lumalink::platform::filesystem::DirectoryEntry;
     using lumalink::platform::filesystem::DirectoryEntryCallback;
@@ -368,7 +368,7 @@ namespace lumalink::platform::memory
             return node_->lastWrite;
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             if (position_ >= node_->data.size())
             {

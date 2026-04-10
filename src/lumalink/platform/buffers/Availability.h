@@ -1,66 +1,77 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 
 namespace lumalink::platform::buffers
 {
-    enum class AvailabilityState
+    enum class AvailabilityKind
     {
-        HasBytes,
         Exhausted,
         TemporarilyUnavailable,
         Error
     };
 
-    struct AvailableResult
+    struct AvailabilityError
     {
-        AvailabilityState state = AvailabilityState::Exhausted;
-        std::size_t count = 0;
+        AvailabilityKind kind = AvailabilityKind::Exhausted;
         int errorCode = 0;
-
-        constexpr bool hasBytes() const
-        {
-            return state == AvailabilityState::HasBytes && count > 0;
-        }
-
-        constexpr bool isExhausted() const
-        {
-            return state == AvailabilityState::Exhausted;
-        }
-
-        constexpr bool isTemporarilyUnavailable() const
-        {
-            return state == AvailabilityState::TemporarilyUnavailable;
-        }
-
-        constexpr bool hasError() const
-        {
-            return state == AvailabilityState::Error;
-        }
     };
 
-    constexpr AvailableResult MakeAvailableResult(AvailabilityState state, std::size_t count = 0, int errorCode = 0)
+    using ByteAvailability = std::expected<std::size_t, AvailabilityError>;
+
+    constexpr bool HasAvailableBytes(const ByteAvailability& result)
     {
-        return AvailableResult{state, count, errorCode};
+        return result.has_value() && result.value() > 0;
     }
 
-    constexpr AvailableResult AvailableBytes(std::size_t count)
+    constexpr bool IsExhausted(const ByteAvailability& result)
     {
-        return count > 0 ? MakeAvailableResult(AvailabilityState::HasBytes, count) : MakeAvailableResult(AvailabilityState::Exhausted);
+        return !result.has_value() && result.error().kind == AvailabilityKind::Exhausted;
     }
 
-    constexpr AvailableResult ExhaustedResult()
+    constexpr bool IsTemporarilyUnavailable(const ByteAvailability& result)
     {
-        return MakeAvailableResult(AvailabilityState::Exhausted);
+        return !result.has_value() && result.error().kind == AvailabilityKind::TemporarilyUnavailable;
     }
 
-    constexpr AvailableResult TemporarilyUnavailableResult()
+    constexpr bool HasAvailabilityError(const ByteAvailability& result)
     {
-        return MakeAvailableResult(AvailabilityState::TemporarilyUnavailable);
+        return !result.has_value() && result.error().kind == AvailabilityKind::Error;
     }
 
-    constexpr AvailableResult ErrorResult(int errorCode = 0)
+    constexpr std::size_t AvailableByteCount(const ByteAvailability& result)
     {
-        return MakeAvailableResult(AvailabilityState::Error, 0, errorCode);
+        return result.has_value() ? result.value() : 0;
+    }
+
+    constexpr int AvailabilityErrorCode(const ByteAvailability& result)
+    {
+        return result.has_value() ? 0 : result.error().errorCode;
+    }
+
+    constexpr ByteAvailability MakeAvailabilityError(AvailabilityKind kind, int errorCode = 0)
+    {
+        return std::unexpected(AvailabilityError{kind, errorCode});
+    }
+
+    constexpr ByteAvailability AvailableBytes(std::size_t count)
+    {
+        return count > 0 ? ByteAvailability(count) : MakeAvailabilityError(AvailabilityKind::Exhausted);
+    }
+
+    constexpr ByteAvailability ExhaustedResult()
+    {
+        return MakeAvailabilityError(AvailabilityKind::Exhausted);
+    }
+
+    constexpr ByteAvailability TemporarilyUnavailableResult()
+    {
+        return MakeAvailabilityError(AvailabilityKind::TemporarilyUnavailable);
+    }
+
+    constexpr ByteAvailability ErrorResult(int errorCode = 0)
+    {
+        return MakeAvailabilityError(AvailabilityKind::Error, errorCode);
     }
 }

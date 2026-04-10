@@ -14,18 +14,19 @@ Status legend:
 
 ## Implementation Status
 
-Current status: backlog defined, implementation not started.
+Current status: Phase 1 and Phase 2 are complete.
 
-The current codebase still targets C++17 and carries a compatibility span layer
-in `src/lumalink/span.h` backed by `src/lumalink/tcb_span.hpp` when the
-standard library does not provide `std::span`. A full-codebase scan found about
-58 uses of `lumalink::span` across production and test code.
+The project now builds as C++23 under CMake, all direct `lumalink::span` usage
+has been replaced with `std::span`, and the legacy compatibility files
+`src/lumalink/span.h` and `src/lumalink/tcb_span.hpp` have been removed.
+
+The byte-stream availability surface and UTC time-source result surface have
+also been modernized onto `std::expected`-based models. Native Windows Debug
+builds and the native CTest suite pass after these changes.
 
 The highest-value modernization work is:
 
-- bumping the project baseline from C++17 to C++23
-- replacing the `lumalink::span` wrapper with direct `std::span` usage
-- converting custom result structs to `std::expected`
+- expanding the `std::expected` migration into the remaining result-like APIs
 - using standard ranges algorithms where they materially improve clarity
 
 Lower-priority work exists for structured-bindings cleanup, flat associative
@@ -69,16 +70,16 @@ containers, and targeted optimizer hints.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CPP23-01 | todo | Bump the project CMake configuration from C++17 to C++23 for both the library and native test targets | none | The root and test CMake files request C++23, native builds succeed, and CTest passes with the new baseline |
-| CPP23-02 | todo | Replace all `lumalink::span` and `lumalink::dynamic_extent` usage with `std::span` and `std::dynamic_extent` throughout `src/` and `test/` | CPP23-01 | No production or test code references `lumalink::span`, `tcb::span`, `span.h`, or `tcb_span.hpp`, and all tests pass |
-| CPP23-03 | todo | Remove the obsolete compatibility files `src/lumalink/span.h` and `src/lumalink/tcb_span.hpp` after all call sites are migrated | CPP23-02 | The compatibility shim files are deleted and nothing in the build or source tree depends on them |
+| CPP23-01 | done | Bump the project CMake configuration from C++17 to C++23 for both the library and native test targets | none | The root and test CMake files request C++23, native builds succeed, and CTest passes with the new baseline |
+| CPP23-02 | done | Replace all `lumalink::span` and `lumalink::dynamic_extent` usage with `std::span` and `std::dynamic_extent` throughout `src/` and `test/` | CPP23-01 | No production or test code references `lumalink::span`, `tcb::span`, `span.h`, or `tcb_span.hpp`, and all tests pass |
+| CPP23-03 | done | Remove the obsolete compatibility files `src/lumalink/span.h` and `src/lumalink/tcb_span.hpp` after all call sites are migrated | CPP23-02 | The compatibility shim files are deleted and nothing in the build or source tree depends on them |
 
 ## Phase 2 - Result Type Modernization
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CPP23-04 | todo | Replace `AvailableResult` and `AvailabilityState` in the byte-stream layer with a `std::expected`-based result model | CPP23-01 | `Availability.h` no longer defines the bespoke result struct and all byte-source call sites compile and pass tests using the new expected-based surface |
-| CPP23-05 | todo | Replace `UtcTimeResult` in the time abstraction with `std::expected<UnixTime, E>` | CPP23-01 | `TimeSource.h` uses `std::expected` for UTC retrieval and all callers are updated without behavior regressions |
+| CPP23-04 | done | Replace `AvailableResult` and `AvailabilityState` in the byte-stream layer with a `std::expected`-based result model | CPP23-01 | `Availability.h` no longer defines the bespoke result struct and all byte-source call sites compile and pass tests using the new expected-based surface |
+| CPP23-05 | done | Replace `UtcTimeResult` in the time abstraction with `std::expected<UnixTime, E>` | CPP23-01 | `TimeSource.h` uses `std::expected` for UTC retrieval and all callers are updated without behavior regressions |
 
 ## Phase 3 - Clarity Improvements With Standard Algorithms
 

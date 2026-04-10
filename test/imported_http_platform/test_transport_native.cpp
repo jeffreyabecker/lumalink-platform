@@ -113,10 +113,10 @@ std::unique_ptr<IClient> acceptWithRetry(IServer &server) {
   return nullptr;
 }
 
-AvailableResult parsePacketWithRetry(IPeer &peer) {
+ByteAvailability parsePacketWithRetry(IPeer &peer) {
   for (int attempt = 0; attempt < 50; ++attempt) {
-    const AvailableResult result = peer.parsePacket();
-    if (result.hasBytes()) {
+    const ByteAvailability result = peer.parsePacket();
+    if (HasAvailableBytes(result)) {
       return result;
     }
 
@@ -153,13 +153,13 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 
   TEST_ASSERT_EQUAL_UINT64(5, client->write(std::string_view("hello")));
 
-  AvailableResult available = accepted->available();
-  for (int attempt = 0; attempt < 50 && !available.hasBytes(); ++attempt) {
+  ByteAvailability available = accepted->available();
+  for (int attempt = 0; attempt < 50 && !HasAvailableBytes(available); ++attempt) {
     sleepForMilliseconds(10);
     available = accepted->available();
   }
 
-  TEST_ASSERT_TRUE(available.hasBytes());
+  TEST_ASSERT_TRUE(HasAvailableBytes(available));
   std::uint8_t buffer[8] = {};
   TEST_ASSERT_EQUAL_UINT64(
       5, accepted->read(httpadv::v1::util::span<std::uint8_t>(buffer, 5)));
@@ -169,12 +169,12 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
   TEST_ASSERT_EQUAL_UINT64(5, accepted->write(std::string_view("world")));
   std::memset(buffer, 0, sizeof(buffer));
   available = client->available();
-  for (int attempt = 0; attempt < 50 && !available.hasBytes(); ++attempt) {
+  for (int attempt = 0; attempt < 50 && !HasAvailableBytes(available); ++attempt) {
     sleepForMilliseconds(10);
     available = client->available();
   }
 
-  TEST_ASSERT_TRUE(available.hasBytes());
+  TEST_ASSERT_TRUE(HasAvailableBytes(available));
   TEST_ASSERT_EQUAL_UINT64(
       5, client->peek(httpadv::v1::util::span<std::uint8_t>(buffer, 5)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("world"),
@@ -216,9 +216,9 @@ void test_native_factory_creates_udp_peers_for_loopback_packets() {
              pingBytes, sizeof(pingBytes))));
   TEST_ASSERT_TRUE(sender->endPacket());
 
-  const AvailableResult packet = parsePacketWithRetry(*receiver);
-  TEST_ASSERT_TRUE(packet.hasBytes());
-  TEST_ASSERT_EQUAL_UINT64(4, packet.count);
+  const ByteAvailability packet = parsePacketWithRetry(*receiver);
+  TEST_ASSERT_TRUE(HasAvailableBytes(packet));
+  TEST_ASSERT_EQUAL_UINT64(4, AvailableByteCount(packet));
   TEST_ASSERT_EQUAL_STRING("127.0.0.1",
                            std::string(receiver->remoteAddress()).c_str());
   TEST_ASSERT_EQUAL_UINT16(senderPort, receiver->remotePort());
@@ -233,12 +233,12 @@ void test_native_factory_creates_udp_peers_for_loopback_packets() {
       4, receiver->read(httpadv::v1::util::span<std::uint8_t>(buffer, 4)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("ping"),
                                 buffer, 4);
-  TEST_ASSERT_TRUE(receiver->available().isTemporarilyUnavailable());
+  TEST_ASSERT_TRUE(IsTemporarilyUnavailable(receiver->available()));
 
   sender->stop();
   receiver->stop();
-  TEST_ASSERT_TRUE(sender->available().isExhausted());
-  TEST_ASSERT_TRUE(receiver->available().isExhausted());
+  TEST_ASSERT_TRUE(IsExhausted(sender->available()));
+  TEST_ASSERT_TRUE(IsExhausted(receiver->available()));
 }
 
 int runUnitySuite() {

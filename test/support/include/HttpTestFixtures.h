@@ -418,7 +418,7 @@ namespace httpadv
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return readable_.available();
         }

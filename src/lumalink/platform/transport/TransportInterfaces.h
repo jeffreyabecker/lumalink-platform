@@ -47,8 +47,8 @@ namespace lumalink::platform::transport
         virtual bool beginPacket(std::string_view address, std::uint16_t port) = 0;
         virtual bool endPacket() = 0;
         virtual std::size_t write(std::span<const std::uint8_t> buffer) = 0;
-        virtual lumalink::platform::buffers::AvailableResult parsePacket() = 0;
-        virtual lumalink::platform::buffers::AvailableResult available() = 0;
+        virtual lumalink::platform::buffers::ByteAvailability parsePacket() = 0;
+        virtual lumalink::platform::buffers::ByteAvailability available() = 0;
         virtual std::size_t read(std::span<std::uint8_t> buffer) = 0;
         virtual std::size_t peek(std::span<std::uint8_t> buffer) = 0;
         virtual void flush() = 0;

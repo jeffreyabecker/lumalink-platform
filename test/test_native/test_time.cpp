@@ -9,6 +9,7 @@
 #endif
 
 #include <cstdint>
+#include <expected>
 
 using lumalink::platform::time::IClock;
 using lumalink::platform::time::IMonotonicClock;
@@ -21,7 +22,8 @@ using lumalink::platform::time::MonotonicMillis;
 using lumalink::platform::time::OptionalUnixTime;
 using lumalink::platform::time::UnixTime;
 using lumalink::platform::time::UtcSynchronizer;
-using lumalink::platform::time::UtcTimeResult;
+using lumalink::platform::time::UtcTimeError;
+using lumalink::platform::time::UtcTimeFetchResult;
 
 // Use the platform default aliases — no per-file #ifdef required.
 using NativeUtcClock       = lumalink::platform::UtcClock;
@@ -155,16 +157,13 @@ namespace
         {
         }
 
-        UtcTimeResult fetchUtcTime() override
+        UtcTimeFetchResult fetchUtcTime() override
         {
             if (!ok_)
             {
-                return {};
+                return std::unexpected(UtcTimeError::Unavailable);
             }
-            UtcTimeResult r;
-            r.ok   = true;
-            r.time = time_;
-            return r;
+            return time_;
         }
 
     private:
@@ -180,9 +179,9 @@ void test_utc_synchronizer_sets_clock_from_source()
     FixedUtcTimeSource source(expected);
 
     UtcSynchronizer sync(source, clock);
-    const UtcTimeResult result = sync.synchronize();
+    const UtcTimeFetchResult result = sync.synchronize();
 
-    TEST_ASSERT_TRUE(result.ok);
+    TEST_ASSERT_TRUE(result.has_value());
     TEST_ASSERT_TRUE(clock.utcNow().has_value());
     TEST_ASSERT_EQUAL_INT64(expected.seconds, clock.utcNow()->seconds);
 }
@@ -194,9 +193,9 @@ void test_utc_synchronizer_leaves_clock_unchanged_on_source_failure()
 
     FixedUtcTimeSource failingSource({}, /*ok=*/false);
     UtcSynchronizer sync(failingSource, clock);
-    const UtcTimeResult result = sync.synchronize();
+    const UtcTimeFetchResult result = sync.synchronize();
 
-    TEST_ASSERT_FALSE(result.ok);
+    TEST_ASSERT_FALSE(result.has_value());
     // Clock should retain its previous value.
     TEST_ASSERT_TRUE(clock.utcNow().has_value());
     TEST_ASSERT_EQUAL_INT64(999, clock.utcNow()->seconds);
@@ -204,13 +203,11 @@ void test_utc_synchronizer_leaves_clock_unchanged_on_source_failure()
 
 void test_utc_time_result_bool_conversion()
 {
-    UtcTimeResult ok;
-    ok.ok = true;
-    UtcTimeResult fail;
-    fail.ok = false;
+    const UtcTimeFetchResult ok = UnixTime{42, 0};
+    const UtcTimeFetchResult fail = std::unexpected(UtcTimeError::Unavailable);
 
-    TEST_ASSERT_TRUE(static_cast<bool>(ok));
-    TEST_ASSERT_FALSE(static_cast<bool>(fail));
+    TEST_ASSERT_TRUE(ok.has_value());
+    TEST_ASSERT_FALSE(fail.has_value());
 }
 
 // ── Native UTC clock ─────────────────────────────────────────────────────────

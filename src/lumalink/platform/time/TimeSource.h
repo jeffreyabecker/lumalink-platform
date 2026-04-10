@@ -3,19 +3,16 @@
 #include "ClockTypes.h"
 #include "Clock.h"
 
+#include <expected>
+
 namespace lumalink::platform::time
 {
-    // Result returned by an IUtcTimeSource when queried for the current UTC time.
-    // ok == false indicates that the source could not provide a time (e.g., no
-    // network connectivity, hardware not ready, or not yet synchronised).
-    struct UtcTimeResult
+    enum class UtcTimeError
     {
-        bool    ok   = false;
-        UnixTime time{};
-
-        // Convenience: implicit bool test.
-        explicit constexpr operator bool() const { return ok; }
+        Unavailable
     };
+
+    using UtcTimeFetchResult = std::expected<UnixTime, UtcTimeError>;
 
     // Minimal interface for an external UTC time source.
     // Implementations may query NTP, GPS, RTC, or any other authoritative source.
@@ -30,8 +27,9 @@ namespace lumalink::platform::time
         virtual ~IUtcTimeSource() = default;
 
         // Query the source for the current UTC time.
-        // Returns a UtcTimeResult; check result.ok before using result.time.
-        virtual UtcTimeResult fetchUtcTime() = 0;
+        // Returns the current time on success, or an error when the source could
+        // not provide UTC time yet.
+        virtual UtcTimeFetchResult fetchUtcTime() = 0;
     };
 
     // Interface for a component that synchronises a settable UTC clock from a
@@ -49,9 +47,9 @@ namespace lumalink::platform::time
         virtual ~IUtcSynchronizer() = default;
 
         // Perform a synchronisation attempt.
-        // Returns the UtcTimeResult from the underlying source; the caller can
-        // inspect result.ok to know whether the clock was updated.
-        virtual UtcTimeResult synchronize() = 0;
+        // Returns the underlying source result so the caller can know whether the
+        // clock was updated.
+        virtual UtcTimeFetchResult synchronize() = 0;
     };
 
     // Concrete synchronizer that wires an IUtcTimeSource to an ISettableUtcClock.
@@ -65,12 +63,12 @@ namespace lumalink::platform::time
         {
         }
 
-        UtcTimeResult synchronize() override
+        UtcTimeFetchResult synchronize() override
         {
-            const UtcTimeResult result = source_.fetchUtcTime();
-            if (result.ok)
+            const UtcTimeFetchResult result = source_.fetchUtcTime();
+            if (result.has_value())
             {
-                clock_.setUtcTime(result.time);
+                clock_.setUtcTime(result.value());
             }
             return result;
         }

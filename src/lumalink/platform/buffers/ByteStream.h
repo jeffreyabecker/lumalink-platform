@@ -15,21 +15,19 @@
 
 namespace lumalink::platform::buffers
 {
-    inline int LegacyAvailableFromResult(const AvailableResult &result)
+    inline int LegacyAvailableFromResult(const ByteAvailability& result)
     {
-        switch (result.state)
+        if (HasAvailableBytes(result))
         {
-        case AvailabilityState::HasBytes:
-            return static_cast<int>(std::min<std::size_t>(result.count, static_cast<std::size_t>(std::numeric_limits<int>::max())));
-
-        case AvailabilityState::Exhausted:
-            return 0;
-
-        case AvailabilityState::TemporarilyUnavailable:
-        case AvailabilityState::Error:
-        default:
-            return -1;
+            return static_cast<int>(std::min<std::size_t>(AvailableByteCount(result), static_cast<std::size_t>(std::numeric_limits<int>::max())));
         }
+
+        if (IsExhausted(result))
+        {
+            return 0;
+        }
+
+        return -1;
     }
 
     class IByteSource
@@ -37,7 +35,7 @@ namespace lumalink::platform::buffers
     public:
         virtual ~IByteSource() = default;
 
-        virtual AvailableResult available() = 0;
+        virtual ByteAvailability available() = 0;
         virtual size_t read(std::span<uint8_t> buffer) = 0;
         virtual int read(){
             uint8_t byte = 0;
@@ -99,10 +97,10 @@ namespace lumalink::platform::buffers
     inline std::vector<uint8_t> ReadAsVector(IByteSource &source, size_t maxLength = SIZE_MAX)
     {
         std::vector<uint8_t> result;
-        const AvailableResult available = source.available();
-        if (available.hasBytes() && available.count < maxLength)
+        const ByteAvailability available = source.available();
+        if (HasAvailableBytes(available) && AvailableByteCount(available) < maxLength)
         {
-            result.reserve(available.count);
+            result.reserve(AvailableByteCount(available));
         }
         else if (maxLength != SIZE_MAX)
         {
@@ -188,7 +186,7 @@ namespace lumalink::platform::buffers
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             if (position_ >= size_)
             {
@@ -259,7 +257,7 @@ namespace lumalink::platform::buffers
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return currentAvailability();
         }
@@ -269,8 +267,8 @@ namespace lumalink::platform::buffers
             size_t totalRead = 0;
             while (totalRead < buffer.size())
             {
-                const AvailableResult availableResult = currentAvailability();
-                if (!availableResult.hasBytes())
+                const ByteAvailability availableResult = currentAvailability();
+                if (!HasAvailableBytes(availableResult))
                 {
                     break;
                 }
@@ -290,8 +288,8 @@ namespace lumalink::platform::buffers
 
         size_t peek(std::span<uint8_t> buffer) override
         {
-            const AvailableResult availableResult = currentAvailability();
-            if (!availableResult.hasBytes() || buffer.empty())
+            const ByteAvailability availableResult = currentAvailability();
+            if (!HasAvailableBytes(availableResult) || buffer.empty())
             {
                 return 0;
             }
@@ -300,12 +298,12 @@ namespace lumalink::platform::buffers
         }
 
     private:
-        AvailableResult currentAvailability()
+        ByteAvailability currentAvailability()
         {
             while (currentIndex_ < sources_.size())
             {
-                AvailableResult result = sources_[currentIndex_]->available();
-                if (result.isExhausted())
+                ByteAvailability result = sources_[currentIndex_]->available();
+                if (IsExhausted(result))
                 {
                     ++currentIndex_;
                     continue;

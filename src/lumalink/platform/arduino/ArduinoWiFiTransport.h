@@ -27,7 +27,7 @@ namespace lumalink::platform::arduino {
 #if defined(ARDUINO)
 
 using lumalink::platform::buffers::AvailableBytes;
-using lumalink::platform::buffers::AvailableResult;
+using lumalink::platform::buffers::ByteAvailability;
 using lumalink::platform::buffers::ErrorResult;
 using lumalink::platform::buffers::ExhaustedResult;
 using lumalink::platform::transport::IClient;
@@ -37,7 +37,7 @@ using lumalink::platform::buffers::TemporarilyUnavailableResult;
 
 namespace detail {
 
-inline AvailableResult mapLegacyAvailable(int availableValue, bool connected) {
+inline ByteAvailability mapLegacyAvailable(int availableValue, bool connected) {
 	if (availableValue > 0) {
 		return AvailableBytes(static_cast<std::size_t>(availableValue));
 	}
@@ -92,7 +92,7 @@ public:
 
 	std::uint32_t getTimeout() const override { return timeoutMs_; }
 
-	AvailableResult available() override {
+	ByteAvailability available() override {
 		return detail::mapLegacyAvailable(client_.available(), client_.connected());
 	}
 
@@ -200,7 +200,7 @@ public:
 		return buffer.empty() ? 0 : udp_.write(buffer.data(), buffer.size());
 	}
 
-	AvailableResult parsePacket() override {
+	ByteAvailability parsePacket() override {
 		const int packetSize = udp_.parsePacket();
 		if (packetSize > 0) {
 			return AvailableBytes(static_cast<std::size_t>(packetSize));
@@ -209,7 +209,7 @@ public:
 		return active_ ? TemporarilyUnavailableResult() : ExhaustedResult();
 	}
 
-	AvailableResult available() override {
+	ByteAvailability available() override {
 		return detail::mapLegacyAvailable(udp_.available(), active_);
 	}
 

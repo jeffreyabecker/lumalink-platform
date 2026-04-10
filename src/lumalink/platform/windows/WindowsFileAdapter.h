@@ -25,7 +25,7 @@
 namespace lumalink::platform::windows
 {
             using lumalink::platform::buffers::AvailableBytes;
-            using lumalink::platform::buffers::AvailableResult;
+            using lumalink::platform::buffers::ByteAvailability;
             using lumalink::platform::filesystem::DirectoryEntry;
             using lumalink::platform::filesystem::DirectoryEntryCallback;
             using lumalink::platform::buffers::ExhaustedResult;
@@ -174,7 +174,7 @@ namespace lumalink::platform::windows
                     close();
                 }
 
-                AvailableResult available() override
+                ByteAvailability available() override
                 {
                     if (directory_)
                     {

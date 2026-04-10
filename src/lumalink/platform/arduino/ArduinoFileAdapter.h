@@ -63,7 +63,7 @@ namespace lumalink::platform::arduino
                     close();
                 }
 
-                AvailableResult available() override
+                ByteAvailability available() override
                 {
                     if (directory_ || !file_ || !isReadable())
                     {

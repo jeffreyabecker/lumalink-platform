@@ -2,7 +2,7 @@
 
 ## Status
 
-Exploratory design only. This sketches what the library could look like if C++
+This sketches what the library could look like if C++
 modules were adopted for the native-host build path.
 
 This design is anchored in the current public umbrella header at
@@ -22,7 +22,7 @@ The likely outcome is:
 - a small set of shared, platform-agnostic modules
 - one platform implementation module set per native platform
 - one thin facade module for the active native platform
-- headers retained for compatibility and embedded consumers
+- a short-lived header compatibility layer only where it reduces migration friction
 
 In practice that means Windows builds would compile the shared modules plus
 Windows platform modules, and POSIX builds would compile the shared modules plus
@@ -34,7 +34,7 @@ POSIX platform modules.
 - Make platform boundaries explicit instead of hiding them behind broad include chains.
 - Keep the current runtime and API behavior stable for consumers.
 - Improve native build hygiene under CMake and modern compilers.
-- Preserve a non-module path for consumers and targets that cannot use modules yet.
+- Preserve a non-module path only where it is still needed, especially for embedded targets.
 
 ## Non-Goals
 
@@ -42,7 +42,7 @@ POSIX platform modules.
 - Do not force Arduino, Pico, ESP8266, or ESP32 targets onto modules in the first iteration.
 - Do not collapse all platform code into a single giant module with heavy `#if` branching.
 - Do not redesign the transport, filesystem, or clock abstractions as part of the initial module rollout.
-- Do not remove existing public headers in the first phase.
+- Do not delete public headers before the single known downstream consumer has been migrated and validated.
 
 ## Current Constraints
 
@@ -125,14 +125,18 @@ That means:
 
 ### 4. Header Compatibility Layer
 
-Existing headers stay in place initially.
+Because there is only one known consumer of this library, header compatibility
+is not a major architectural constraint here. The likely migration path is to
+keep compatibility headers only briefly, or skip them entirely if the consumer
+can be updated in the same change set.
 
 The first version should support:
 
 - module consumers using `import lumalink.native;`
-- existing consumers continuing to `#include <LumaLinkPlatform.h>`
+- optionally, existing code continuing to `#include <LumaLinkPlatform.h>` during a short transition window
 
-That preserves downstream compatibility while the module path matures.
+That means compatibility headers are a tactical migration aid, not a strategic
+requirement.
 
 ## Proposed Artifact Model
 
@@ -192,13 +196,13 @@ targets rather than one target with a mixed all-platform source set.
 
 Suggested targets:
 
-- `lumalink-platform-headers`
+- `lumalink-platform-headers` or a temporary compatibility target
 - `lumalink-platform-modules-common`
 - `lumalink-platform-modules-native`
 
 Suggested behavior:
 
-- `lumalink-platform-headers` remains the compatibility target
+- `lumalink-platform-headers` exists only if a short transition period is useful for the known consumer
 - `lumalink-platform-modules-common` contains shared module interface units
 - `lumalink-platform-modules-native` adds either Windows or POSIX module sources based on the host platform
 - embedded targets do not consume the module targets initially
@@ -252,7 +256,9 @@ endif()
 #include <LumaLinkPlatform.h>
 ```
 
-This keeps working unchanged.
+This can remain available briefly if needed, but given the single known
+consumer it is likely reasonable to replace this directly rather than carrying a
+long-lived compatibility path.
 
 ### Native Module Consumer
 
@@ -295,29 +301,33 @@ The factory headers are the awkward part. They should eventually become:
 - small header wrappers over module exports, or
 - module-provided aliases re-exposed through compatibility headers
 
+Given the current consumer model, the second option does not need to live for
+long. If the downstream code is updated alongside the module rollout, these
+headers can be reduced aggressively or removed outright after validation.
+
 ## Transition Plan
 
 ### Phase A: Core Contracts
 
 - Create shared modules for buffers, filesystem, transport, time, and path mapping.
 - Do not change behavior.
-- Keep all existing headers.
+- Keep existing headers only if they materially simplify the consumer migration.
 
 ### Phase B: Native Platform Modules
 
 - Add Windows and POSIX implementation modules.
-- Keep platform headers as thin compatibility wrappers.
+- Use thin compatibility wrappers only if they help stage the consumer conversion.
 - Do not touch embedded targets yet.
 
 ### Phase C: Native Facade
 
 - Add `lumalink.native`.
 - Make it the recommended native module import surface.
-- Keep the umbrella header for compatibility.
+- Decide whether the umbrella header survives as a short-term shim or is replaced immediately in the downstream consumer.
 
 ### Phase D: Optional Header Thinning
 
-- Convert heavyweight compatibility headers into minimal forwarding layers.
+- Convert any surviving compatibility headers into minimal forwarding layers, or delete them once the consumer migration is complete.
 - Reassess whether the factory headers should remain macro-driven or become per-target configured exports.
 
 ## Risks
@@ -334,7 +344,7 @@ If this were implemented, the right first target is:
 
 - native-host only
 - shared core modules plus per-platform native modules
-- headers retained as the stable compatibility surface
+- compatibility headers treated as temporary migration tooling, not a permanent public contract
 
 I would not start with:
 
@@ -343,7 +353,8 @@ I would not start with:
 - immediate header removal
 
 The cleanest initial goal is to make Windows and POSIX native builds
-module-aware while preserving the existing header-based library contract.
+module-aware while migrating the single downstream consumer with as little
+compatibility scaffolding as necessary.
 
 ## Open Questions
 

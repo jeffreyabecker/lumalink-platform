@@ -1,7 +1,5 @@
 #include <unity.h>
 
-#include <LumaLinkPlatform.h>
-
 // memory filesystem
 void test_memory_file_can_write_and_read();
 void test_memory_directory_and_list();
@@ -36,10 +34,12 @@ void test_utc_synchronizer_leaves_clock_unchanged_on_source_failure();
 void test_utc_time_result_bool_conversion();
 
 // native clock implementations
+#if !defined(LUMALINK_TEST_USE_MODULES)
 void test_native_utc_clock_returns_a_value();
 void test_native_monotonic_clock_is_non_decreasing();
 void test_native_monotonic_clock_advances_over_delay();
 void test_native_combined_clock_returns_both_times();
+#endif
 
 void setUp()
 {
@@ -76,9 +76,11 @@ int main(int argc, char **argv)
     RUN_TEST(test_utc_synchronizer_sets_clock_from_source);
     RUN_TEST(test_utc_synchronizer_leaves_clock_unchanged_on_source_failure);
     RUN_TEST(test_utc_time_result_bool_conversion);
+#if !defined(LUMALINK_TEST_USE_MODULES)
     RUN_TEST(test_native_utc_clock_returns_a_value);
     RUN_TEST(test_native_monotonic_clock_is_non_decreasing);
     RUN_TEST(test_native_monotonic_clock_advances_over_delay);
     RUN_TEST(test_native_combined_clock_returns_both_times);
+#endif
     return UNITY_END();
 }

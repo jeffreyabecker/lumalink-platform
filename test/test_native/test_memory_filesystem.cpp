@@ -1,6 +1,10 @@
 #include <unity.h>
 
+#if defined(LUMALINK_TEST_USE_MODULES)
+import lumalink.platform;
+#else
 #include <lumalink/platform/MemoryFileAdapter.h>
+#endif
 
 #include <cstdint>
 #include <memory>

@@ -18,6 +18,10 @@ add_executable(lumalink_platform_tests
 
 target_compile_features(lumalink_platform_tests PRIVATE cxx_std_23)
 
+if(LUMALINK_ENABLE_MODULES)
+    target_compile_definitions(lumalink_platform_tests PRIVATE LUMALINK_TEST_USE_MODULES=1)
+endif()
+
 target_include_directories(lumalink_platform_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../support/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../support/native_arduino

@@ -1,6 +1,16 @@
+#if defined(LUMALINK_TEST_USE_MODULES)
+#if defined(_WIN32)
+import lumalink.platform.windows;
+#else
+import lumalink.platform.posix;
+#endif
+#endif
+
 #include <unity.h>
 
-#if defined(_WIN32)
+#if defined(LUMALINK_TEST_USE_MODULES)
+#include <lumalink/platform/FileSystem.h>
+#elif defined(_WIN32)
 #include <windows/WindowsFileAdapter.h>
 #else
 #include <posix/PosixFileAdapter.h>
@@ -14,12 +24,6 @@
 #include <span>
 #include <string>
 #include <vector>
-
-#if defined(_WIN32)
-using NativeFSImpl = lumalink::platform::windows::WindowsFs;
-#else
-using NativeFSImpl = lumalink::platform::posix::PosixFS;
-#endif
 
 using lumalink::platform::filesystem::FileHandle;
 using lumalink::platform::filesystem::FileOpenMode;
@@ -57,7 +61,11 @@ void test_native_file_factory_can_open_and_read_temp_file()
     const char *content = "hello-native";
     TEST_ASSERT_TRUE(CreateBinaryFile(tmpPath, content));
 
-    std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
+#if defined(_WIN32)
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::windows::WindowsFs>();
+#else
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::posix::PosixFS>();
+#endif
     TEST_ASSERT_NOT_NULL(fs.get());
 
     FileHandle file = fs->open(tmpPath, FileOpenMode::Read);
@@ -72,7 +80,11 @@ void test_native_file_factory_can_open_and_read_temp_file()
 
 void test_native_file_factory_supports_directory_handles()
 {
-    std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
+#if defined(_WIN32)
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::windows::WindowsFs>();
+#else
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::posix::PosixFS>();
+#endif
     TEST_ASSERT_NOT_NULL(fs.get());
 
     FileHandle file = fs->open(".", FileOpenMode::Read);
@@ -86,7 +98,11 @@ void test_native_file_factory_can_write_and_reopen_file()
 {
     const std::string tmpPath = MakeTempPath("file_write");
 
-    std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
+#if defined(_WIN32)
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::windows::WindowsFs>();
+#else
+    std::unique_ptr<IFileSystem> fs = std::make_unique<lumalink::platform::posix::PosixFS>();
+#endif
     TEST_ASSERT_NOT_NULL(fs.get());
 
     FileHandle writable = fs->open(tmpPath, FileOpenMode::ReadWrite);

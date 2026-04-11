@@ -15,17 +15,20 @@ Status legend:
 
 ## Implementation Status
 
-Current status: Phase 1 decision work is complete; implementation work has not started.
+Current status: Phase 1 is complete. Phase 2 is nearly complete: the module-aware target wiring, the initial `lumalink.platform` import path, and the portable test migration are working, but portable-header retirement is still pending. The remaining platform-specific test migration belongs to Phase 3.
+
+Phase 3 is active on Windows. The current `lumalink.platform.windows` work follows the explicit-implementation model rather than recreating header-era default aliases in the module surface. The current Windows-native test consumer model is to import `lumalink.platform.windows` for concrete implementations and include the needed portable interface headers directly, which avoids the MSVC failure triggered by importing both named modules in the same translation unit. The Windows-native time, transport, and filesystem tests now follow that concrete-type model, and both the default and module-enabled build/test paths are passing with that layout.
 
 The current public surface is still header-based. The main entry points are
 `src/LumaLinkPlatform.h` and `src/lumalink/LumaLinkPlatform.h`, with the
 portable abstraction headers under `src/lumalink/platform/` and native-host
 implementations under `src/windows/` and `src/posix/`.
 
-The current build target `lumalink-platform` is an interface library that
-exports include directories and installs headers by copying the `src/` tree.
-No module interface units, module partitions, compiler feature gating, or BMI
-packaging/export flow exists yet.
+The current build target `lumalink-platform` is now a real target with
+module-aware CMake wiring behind `LUMALINK_ENABLE_MODULES`. The initial
+portable module interface unit exists at
+`src/lumalink/platform/lumalink.platform.cppm`, and package/export work now
+has an explicit module path in addition to the legacy header-install path.
 
 The current public API surface is concentrated in:
 
@@ -44,17 +47,22 @@ The current public API surface is concentrated in:
 - `src/windows/WindowsFactory.h`
 - `src/posix/PosixFactory.h`
 
-The test suite currently consumes the library through header includes. The
-compatibility story for this migration is to update the in-repo tests to import
-the module surface rather than building a long-lived dual public API. Maintained
-downstream consumers should track their own migrations in their own backlogs.
+The in-repo portable tests now validate the `lumalink.platform` import path when
+modules are enabled. Windows-native time, transport, and filesystem coverage has
+also started consuming the Windows module surface directly under the current
+single-module import model, while the remaining platform-specific migration work
+belongs to Phase 3. The compatibility story for this migration is still to
+update the in-repo tests to import the module surface rather than building a
+long-lived dual public API. Maintained downstream consumers should track their
+own migrations in their own backlogs.
 
 ## Design Intent
 
 - Make exported C++20 modules the canonical public surface instead of header inclusion.
-- Preserve the existing platform abstraction boundaries: buffers, filesystem, transport, time, and platform factory dispatch.
+- Preserve the existing platform abstraction boundaries: buffers, filesystem, transport, and time.
 - Update the in-repo tests to the module surface instead of carrying a long-term compatibility layer for header-based usage.
 - Keep host-specific Windows and POSIX implementation details out of the portable module surface unless explicitly imported.
+- Treat the platform-specific modules as explicit implementation surfaces: module consumers import `lumalink.platform.windows` or `lumalink.platform.posix` and use the concrete implementation types they need instead of relying on header-era default aliases.
 - Keep the default arithmetic and time semantics unchanged; this is a packaging and interface migration, not a behavior rewrite.
 - Use standard CMake module support rather than project-specific build scripts where toolchain support is sufficient.
 - Treat installed module interface sources as the portable package artifact; do not plan around shipping prebuilt BMI artifacts.
@@ -84,6 +92,7 @@ downstream consumers should track their own migrations in their own backlogs.
 - Define one authoritative three-module topology with exact names: `lumalink.platform`, `lumalink.platform.windows`, and `lumalink.platform.posix`.
 - Keep the portable module graph acyclic; the Windows and POSIX modules may depend on the portable module, but not the other way around.
 - Preserve the distinction between portable abstractions under `src/lumalink/platform/` and host-specific implementations under `src/windows/` and `src/posix/`.
+- Do not recreate the header-based platform-default alias layer or add automatic host-platform module selection; explicit implementation imports are the module contract.
 - Any temporary bridging surface must exist only to unblock the migration work and should be removed once the in-repo tests are updated.
 - Do not turn the current header layout into many peer public modules; buffers, filesystem, transport, and time remain part of the portable public module unless there is a later documented reason to split them.
 - Raise the project CMake floor to `3.30` and use CMake-managed `CXX_MODULES` file sets instead of bespoke BMI-management scripts.
@@ -108,26 +117,26 @@ downstream consumers should track their own migrations in their own backlogs.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| MODULE-05 | todo | Add a top-level `LUMALINK_ENABLE_MODULES` option and CMake wiring for module-aware builds, including a real owning target and `CXX_MODULES` file sets | MODULE-03 | Module compilation is isolated behind the option, uses a module-capable target model, and does not regress unrelated builds when disabled |
-| MODULE-06 | todo | Introduce `lumalink.platform` as the public portable module interface and map it to the current top-level entry points | MODULE-01, MODULE-05 | A consumer can import `lumalink.platform` and receive the intended portable public surface without including headers directly |
-| MODULE-07 | todo | Organize the portable implementation behind `lumalink.platform` without turning buffers, filesystem, transport, and time into separate public modules | MODULE-06 | The `lumalink.platform` surface imports cleanly, builds without cycles, and keeps the subsystem layering as implementation detail rather than public topology |
-| MODULE-08 | todo | Refactor portable headers so they become private implementation-detail includes or are removed once the in-repo tests have moved to `lumalink.platform` imports | MODULE-06, MODULE-07 | Public portable headers no longer carry the primary API-definition burden once modules are enabled |
-| MODULE-09 | todo | Update the native test suite to import `lumalink.platform` and verify the intended module-based API directly | MODULE-02, MODULE-08 | Tests pass through `lumalink.platform` imports and no longer depend on legacy public headers as their primary consumption path |
+| MODULE-05 | done | Add a top-level `LUMALINK_ENABLE_MODULES` option and CMake wiring for module-aware builds, including a real owning target and `CXX_MODULES` file sets | MODULE-03 | Module compilation is isolated behind the option, uses a module-capable target model, and does not regress unrelated builds when disabled |
+| MODULE-06 | done | Introduce `lumalink.platform` as the public portable module interface and map it to the current top-level entry points | MODULE-01, MODULE-05 | A consumer can import `lumalink.platform` and receive the intended portable public surface without including headers directly |
+| MODULE-07 | done | Organize the portable implementation behind `lumalink.platform` without turning buffers, filesystem, transport, and time into separate public modules | MODULE-06 | The `lumalink.platform` surface imports cleanly, builds without cycles, and keeps the subsystem layering as implementation detail rather than public topology |
+| MODULE-08 | doing | Refactor portable headers so they become private implementation-detail includes or are removed once the portable in-repo tests have moved to `lumalink.platform` imports | MODULE-06, MODULE-07 | Public portable headers no longer carry the primary API-definition burden once modules are enabled |
+| MODULE-09 | done | Update the portable in-repo tests to import `lumalink.platform` and verify the intended module-based API directly | MODULE-02, MODULE-08 | Portable API coverage passes through `lumalink.platform` imports and no longer depends on legacy public headers as its primary consumption path |
 
 ## Phase 3 - Platform-Specific Module Exports
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| MODULE-10 | todo | Define the entry points and dependency boundaries for `lumalink.platform.windows` and `lumalink.platform.posix` relative to `lumalink.platform` | MODULE-01, MODULE-07 | The platform-specific module names and import rules are documented and do not leak back into the portable dependency graph |
-| MODULE-11 | todo | Implement `lumalink.platform.windows` so it exposes the supported native clock, transport, filesystem, and factory surfaces without polluting `lumalink.platform` with Windows SDK headers | MODULE-10, MODULE-08 | Windows-native consumers can import `lumalink.platform.windows` and the portable module remains free of Windows-specific header leakage |
-| MODULE-12 | todo | Implement `lumalink.platform.posix` so it exposes the supported native clock, transport, filesystem, and factory surfaces without widening the Windows-specific build path | MODULE-10, MODULE-08 | POSIX-native consumers can import `lumalink.platform.posix` and the platform split remains explicit |
-| MODULE-13 | todo | Update the top-level platform selection surface so the existing host-platform factory entry points remain available under the new module strategy | MODULE-11, MODULE-12 | The current host-platform selection behavior is preserved for module consumers and remains testable |
+| MODULE-10 | doing | Define the entry points and dependency boundaries for `lumalink.platform.windows` and `lumalink.platform.posix` relative to `lumalink.platform` | MODULE-01, MODULE-07 | The platform-specific module names and import rules are documented, do not leak back into the portable dependency graph, and make clear that consumers import concrete platform implementations instead of relying on platform-default aliases |
+| MODULE-11 | doing | Implement `lumalink.platform.windows` so it exposes the supported native clock, transport, filesystem, and factory surfaces without polluting `lumalink.platform` with Windows SDK headers, and migrate the Windows-specific tests to that module surface | MODULE-10, MODULE-08 | Windows-native consumers and tests can import `lumalink.platform.windows`, use explicit Windows implementation types, include portable interface headers as needed, keep the portable module free of Windows-specific header leakage, and avoid local alias-style indirection in the migrated Windows-native tests |
+| MODULE-12 | doing | Implement `lumalink.platform.posix` so it exposes the supported native clock, transport, and filesystem surfaces without widening the Windows-specific build path, and migrate the POSIX-specific tests to that explicit module surface | MODULE-10, MODULE-08 | POSIX-native consumers and tests can import `lumalink.platform.posix`, use explicit POSIX implementation types directly, and the platform split remains explicit without any automatic host-platform selection layer |
+| MODULE-13 | deferred | Do not add a top-level automatic host-platform selection surface for module consumers | MODULE-11, MODULE-12 | The module migration plan explicitly keeps platform selection opt-in at the import site, and no module task depends on recreating header-era host-default alias behavior |
 
 ## Phase 4 - Packaging, Tooling, And Downstream Verification
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| MODULE-14 | todo | Update the `lumalink-platform` CMake target to publish module file sets and the install/export metadata needed for downstream source-based module consumption | MODULE-04, MODULE-05, MODULE-13 | The build target declares and exports the module surface through `CXX_MODULES` file sets in a way supported by the chosen compiler and CMake matrix |
+| MODULE-14 | todo | Update the `lumalink-platform` CMake target to publish module file sets and the install/export metadata needed for downstream source-based module consumption | MODULE-04, MODULE-05, MODULE-11, MODULE-12 | The build target declares and exports the module surface through `CXX_MODULES` file sets in a way supported by the chosen compiler and CMake matrix |
 | MODULE-15 | todo | Add an installed-consumer verification path that proves both in-tree and installed-package module consumption work as designed without relying on shipped BMIs | MODULE-14 | A downstream verification project or fixture builds successfully against the installed package using the documented module flow and consumer-built BMIs |
 | MODULE-16 | todo | Document consumer setup for modules and the expected handoff to maintained downstream consumer backlogs | MODULE-14, MODULE-15 | The repository documents how to consume the library with modules and makes the downstream migration expectations explicit without owning those migrations here |
 | MODULE-17 | todo | Add configure presets or equivalent documented flows for module-enabled native builds | MODULE-05, MODULE-14 | There is a repeatable configure/build flow for module-enabled development and CI verification |

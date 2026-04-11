@@ -1,6 +1,15 @@
 #include <unity.h>
 
+#if defined(LUMALINK_TEST_USE_MODULES)
+import lumalink.platform;
+#if defined(_WIN32)
+import lumalink.platform.windows;
+#else
+import lumalink.platform.posix;
+#endif
+#else
 #include <LumaLinkPlatform.h>
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -25,10 +34,11 @@ using lumalink::platform::time::UtcSynchronizer;
 using lumalink::platform::time::UtcTimeError;
 using lumalink::platform::time::UtcTimeFetchResult;
 
-// Use the platform default aliases — no per-file #ifdef required.
+#if !defined(LUMALINK_TEST_USE_MODULES)
 using NativeUtcClock       = lumalink::platform::UtcClock;
 using NativeMonotonicClock = lumalink::platform::MonotonicClock;
 using NativeClock          = lumalink::platform::Clock;
+#endif
 
 static void sleepForMilliseconds(int ms)
 {
@@ -210,11 +220,18 @@ void test_utc_time_result_bool_conversion()
     TEST_ASSERT_FALSE(fail.has_value());
 }
 
+#if !defined(LUMALINK_TEST_USE_MODULES) || defined(_WIN32) || defined(__unix__) || defined(__APPLE__)
 // ── Native UTC clock ─────────────────────────────────────────────────────────
 
 void test_native_utc_clock_returns_a_value()
 {
+#if defined(LUMALINK_TEST_USE_MODULES) && defined(_WIN32)
+    lumalink::platform::windows::WindowsUtcClock clock;
+#elif defined(LUMALINK_TEST_USE_MODULES)
+    lumalink::platform::posix::PosixUtcClock clock;
+#else
     NativeUtcClock clock;
+#endif
     const OptionalUnixTime t = clock.utcNow();
     TEST_ASSERT_TRUE(t.has_value());
     // Sanity: Unix time must be after 2020-01-01 (1577836800).
@@ -226,7 +243,13 @@ void test_native_utc_clock_returns_a_value()
 
 void test_native_monotonic_clock_is_non_decreasing()
 {
+#if defined(LUMALINK_TEST_USE_MODULES) && defined(_WIN32)
+    lumalink::platform::windows::WindowsMonotonicClock clock;
+#elif defined(LUMALINK_TEST_USE_MODULES)
+    lumalink::platform::posix::PosixMonotonicClock clock;
+#else
     NativeMonotonicClock clock;
+#endif
     const MonotonicMillis t1 = clock.monotonicNow();
     sleepForMilliseconds(20);
     const MonotonicMillis t2 = clock.monotonicNow();
@@ -236,7 +259,13 @@ void test_native_monotonic_clock_is_non_decreasing()
 
 void test_native_monotonic_clock_advances_over_delay()
 {
+#if defined(LUMALINK_TEST_USE_MODULES) && defined(_WIN32)
+    lumalink::platform::windows::WindowsMonotonicClock clock;
+#elif defined(LUMALINK_TEST_USE_MODULES)
+    lumalink::platform::posix::PosixMonotonicClock clock;
+#else
     NativeMonotonicClock clock;
+#endif
     const MonotonicMillis t1 = clock.monotonicNow();
     sleepForMilliseconds(50);
     const MonotonicMillis t2 = clock.monotonicNow();
@@ -251,7 +280,13 @@ void test_native_monotonic_clock_advances_over_delay()
 
 void test_native_combined_clock_returns_both_times()
 {
+#if defined(LUMALINK_TEST_USE_MODULES) && defined(_WIN32)
+    lumalink::platform::windows::WindowsClock clock;
+#elif defined(LUMALINK_TEST_USE_MODULES)
+    lumalink::platform::posix::PosixClock clock;
+#else
     NativeClock clock;
+#endif
     const OptionalUnixTime utc = clock.utcNow();
     const MonotonicMillis mono  = clock.monotonicNow();
 
@@ -260,3 +295,4 @@ void test_native_combined_clock_returns_both_times()
     // Monotonic value is some positive count; just ensure it was populated.
     TEST_ASSERT_GREATER_OR_EQUAL_UINT64(0, mono.value);
 }
+#endif

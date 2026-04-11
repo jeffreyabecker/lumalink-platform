@@ -1,8 +1,23 @@
+#if defined(LUMALINK_TEST_USE_MODULES)
+#if defined(_WIN32)
+import lumalink.platform.windows;
+#else
+import lumalink.platform.posix;
+#endif
+#endif
+
 #include <unity.h>
 
+#if !defined(LUMALINK_TEST_USE_MODULES) || !defined(_WIN32)
 #include <LumaLinkPlatform.h>
+#endif
 
+#if defined(LUMALINK_TEST_USE_MODULES)
+#include <lumalink/platform/Availability.h>
+#include <lumalink/platform/FileSystem.h>
+#include <lumalink/platform/TransportInterfaces.h>
 #include <lumalink/platform/TransportTraits.h>
+#endif
 
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -14,13 +29,20 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
+#if !defined(LUMALINK_TEST_USE_MODULES)
 #include <windows/WindowsSocketTransport.h>
-#else
+#endif
+#elif !defined(LUMALINK_TEST_USE_MODULES)
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <posix/PosixSocketTransport.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #endif
 
 #include <cstdint>
@@ -41,17 +63,20 @@ using lumalink::platform::transport::IServer;
 using lumalink::platform::transport::IPeer;
 
 #if defined(_WIN32)
-using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;
 using TestSocketHandle = SOCKET;
 constexpr TestSocketHandle InvalidTestSocketHandle = INVALID_SOCKET;
 #else
-using NativeTransportFactory = lumalink::platform::posix::PosixSocketTransportFactory;
 using TestSocketHandle = int;
 constexpr TestSocketHandle InvalidTestSocketHandle = -1;
 #endif
 
-static_assert(IsStaticTransportFactoryV<NativeTransportFactory>,
-              "Native socket transport must expose static factory methods");
+#if defined(_WIN32)
+static_assert(IsStaticTransportFactoryV<lumalink::platform::windows::WindowsSocketTransportFactory>,
+              "Windows socket transport must expose static factory methods");
+#else
+static_assert(IsStaticTransportFactoryV<lumalink::platform::posix::PosixSocketTransportFactory>,
+              "POSIX socket transport must expose static factory methods");
+#endif
 
 static void sleepForMilliseconds(int milliseconds)
 {
@@ -122,19 +147,32 @@ static ByteAvailability parsePacketWithRetry(IPeer &peer)
 
 void test_native_factory_wrapper_can_be_instantiated()
 {
+#if defined(LUMALINK_TEST_USE_MODULES) && defined(_WIN32)
+    TEST_ASSERT_TRUE(lumalink::platform::windows::WindowsSocketTransportFactory::getHostByName("localhost").size() > 0);
+#else
     lumalink::platform::TransportFactory transportFactory;
     TEST_ASSERT_NOT_NULL(&transportFactory);
+#endif
 }
 
 void test_native_factory_creates_tcp_server_and_client_loopback()
 {
-    std::unique_ptr<IServer> server = NativeTransportFactory::createServer(0);
+#if defined(_WIN32)
+    std::unique_ptr<IServer> server = lumalink::platform::windows::WindowsSocketTransportFactory::createServer(0);
+#else
+    std::unique_ptr<IServer> server = lumalink::platform::posix::PosixSocketTransportFactory::createServer(0);
+#endif
     TEST_ASSERT_NOT_NULL(server.get());
     server->begin();
     TEST_ASSERT_GREATER_THAN_UINT16(0, server->port());
 
+#if defined(_WIN32)
     std::unique_ptr<IClient> client =
-        NativeTransportFactory::createClient("127.0.0.1", server->port());
+        lumalink::platform::windows::WindowsSocketTransportFactory::createClient("127.0.0.1", server->port());
+#else
+    std::unique_ptr<IClient> client =
+        lumalink::platform::posix::PosixSocketTransportFactory::createClient("127.0.0.1", server->port());
+#endif
     TEST_ASSERT_NOT_NULL(client.get());
     client->setTimeout(250);
     TEST_ASSERT_EQUAL_UINT32(250, client->getTimeout());
@@ -192,8 +230,13 @@ void test_native_factory_creates_udp_peers_for_loopback_packets()
     const std::uint16_t senderPort = allocateEphemeralUdpPort();
     const std::uint16_t receiverPort = allocateEphemeralUdpPort();
 
-    std::unique_ptr<IPeer> sender = NativeTransportFactory::createPeer();
-    std::unique_ptr<IPeer> receiver = NativeTransportFactory::createPeer();
+#if defined(_WIN32)
+    std::unique_ptr<IPeer> sender = lumalink::platform::windows::WindowsSocketTransportFactory::createPeer();
+    std::unique_ptr<IPeer> receiver = lumalink::platform::windows::WindowsSocketTransportFactory::createPeer();
+#else
+    std::unique_ptr<IPeer> sender = lumalink::platform::posix::PosixSocketTransportFactory::createPeer();
+    std::unique_ptr<IPeer> receiver = lumalink::platform::posix::PosixSocketTransportFactory::createPeer();
+#endif
     TEST_ASSERT_NOT_NULL(sender.get());
     TEST_ASSERT_NOT_NULL(receiver.get());
 

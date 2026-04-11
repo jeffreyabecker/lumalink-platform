@@ -5,31 +5,13 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "transport/TransportInterfaces.h"
-#include "transport/TransportTraits.h"
-#ifdef ARDUINO
-#include "./arduino/ArduinoWiFiTransport.h"
-#elif defined(_WIN32)
-#include "./windows/WindowsSocketTransport.h"
-#else
-#include "./posix/PosixSocketTransport.h"
-#endif
+#include "TransportInterfaces.h"
+#include "TransportTraits.h"
+
 
 namespace lumalink::platform
 {
-    namespace detail
-    {
-#ifdef ARDUINO
-        using NativeTransportFactory = platform::arduino::ArduinoWiFiTransportFactory;
-#elif defined(_WIN32)
-        using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;
-#else
-        using NativeTransportFactory = platform::posix::PosixSocketTransportFactory;
-#endif
-
-    }
-
-    template <typename TTransportFactory = detail::NativeTransportFactory,
+    template <typename TTransportFactory ,
               typename = std::enable_if_t<lumalink::platform::transport::IsStaticTransportFactoryV<TTransportFactory>>>
     class TransportFactoryWrapper : public lumalink::platform::transport::ITransportFactory
     {
@@ -54,7 +36,5 @@ namespace lumalink::platform
             return TTransportFactory::getHostByName(hostName);
         }
     };
-
-    using TransportFactory = TransportFactoryWrapper<>;
 
 }

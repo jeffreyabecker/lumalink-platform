@@ -1,19 +1,13 @@
 #pragma once
 
-#include "../filesystem/FileSystem.h"
+#include "../lumalink/platform/FileSystem.h"
+#include "../lumalink/platform/PathMapper.h"
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#include <windows.h>
-
-#include "../PathMapper.h"
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <fstream>
 #include <limits>
 #include <optional>
@@ -22,21 +16,18 @@
 #include <string_view>
 #include <utility>
 
-namespace lumalink::platform::windows
+namespace lumalink::platform::posix
 {
             using lumalink::platform::buffers::AvailableBytes;
             using lumalink::platform::buffers::ByteAvailability;
+            using lumalink::platform::buffers::ExhaustedResult;
+            using lumalink::platform::buffers::TemporarilyUnavailableResult;
             using lumalink::platform::filesystem::DirectoryEntry;
             using lumalink::platform::filesystem::DirectoryEntryCallback;
-            using lumalink::platform::buffers::ExhaustedResult;
             using lumalink::platform::filesystem::FileHandle;
+            using lumalink::platform::filesystem::FileOpenMode;
             using lumalink::platform::filesystem::IFile;
             using lumalink::platform::filesystem::IFileSystem;
-            using lumalink::platform::filesystem::FileOpenMode;
-            using lumalink::platform::buffers::TemporarilyUnavailableResult;
-
-
-
             struct FileMetadata
             {
                 bool exists = false;
@@ -45,64 +36,37 @@ namespace lumalink::platform::windows
                 std::optional<uint32_t> lastWrite;
             };
 
-            inline std::optional<uint32_t> ToEpochSeconds(const FILETIME& time)
-            {
-                ULARGE_INTEGER rawTime;
-                rawTime.LowPart = time.dwLowDateTime;
-                rawTime.HighPart = time.dwHighDateTime;
-
-                static constexpr unsigned long long WindowsEpochOffset = 116444736000000000ULL;
-                static constexpr unsigned long long TicksPerSecond = 10000000ULL;
-
-                if (rawTime.QuadPart <= WindowsEpochOffset)
-                {
-                    return static_cast<uint32_t>(0);
-                }
-
-                const auto seconds = (rawTime.QuadPart - WindowsEpochOffset) / TicksPerSecond;
-                if (seconds >= static_cast<unsigned long long>(std::numeric_limits<uint32_t>::max()))
-                {
-                    return std::numeric_limits<uint32_t>::max();
-                }
-
-                return static_cast<uint32_t>(seconds);
-            }
-
             inline FileMetadata ReadMetadata(std::string_view path)
             {
                 FileMetadata metadata;
                 const std::string ownedPath(path);
 
-                WIN32_FILE_ATTRIBUTE_DATA fileData;
-                if (!GetFileAttributesExA(ownedPath.c_str(), GetFileExInfoStandard, &fileData))
+                struct stat fileStatus;
+                if (stat(ownedPath.c_str(), &fileStatus) != 0)
                 {
                     return metadata;
                 }
 
                 metadata.exists = true;
-                metadata.directory = (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-
+                metadata.directory = S_ISDIR(fileStatus.st_mode) != 0;
                 if (!metadata.directory)
                 {
-                    ULARGE_INTEGER fileSize;
-                    fileSize.LowPart = fileData.nFileSizeLow;
-                    fileSize.HighPart = fileData.nFileSizeHigh;
-                    metadata.size = static_cast<std::size_t>(fileSize.QuadPart);
+                    metadata.size = static_cast<std::size_t>(fileStatus.st_size);
                 }
 
-                metadata.lastWrite = ToEpochSeconds(fileData.ftLastWriteTime);
+                metadata.lastWrite = static_cast<uint32_t>(fileStatus.st_mtime);
                 return metadata;
             }
 
             inline bool CreateHostDirectory(std::string_view path)
             {
                 const std::string ownedPath(path);
-                if (CreateDirectoryA(ownedPath.c_str(), nullptr) != 0)
+                if (::mkdir(ownedPath.c_str(), 0777) == 0)
                 {
                     return true;
                 }
 
-                if (GetLastError() == ERROR_ALREADY_EXISTS)
+                if (errno == EEXIST)
                 {
                     const FileMetadata metadata = ReadMetadata(ownedPath);
                     return metadata.exists && metadata.directory;
@@ -111,65 +75,77 @@ namespace lumalink::platform::windows
                 return false;
             }
 
-            inline bool RemoveHostPath(std::string_view path, bool isDirectory)
+            inline bool RemoveHostPath(std::string_view path, bool /*isDirectory*/)
             {
                 const std::string ownedPath(path);
-                return isDirectory ? (RemoveDirectoryA(ownedPath.c_str()) != 0) : (DeleteFileA(ownedPath.c_str()) != 0);
+                return ::remove(ownedPath.c_str()) == 0;
             }
 
             inline bool RenameHostPath(std::string_view from, std::string_view to)
             {
                 const std::string ownedFrom(from);
                 const std::string ownedTo(to);
-                return MoveFileA(ownedFrom.c_str(), ownedTo.c_str()) != 0;
+                return ::rename(ownedFrom.c_str(), ownedTo.c_str()) == 0;
             }
 
             template <typename Callback>
             inline bool EnumerateHostDirectory(std::string_view directoryPath, Callback&& callback)
             {
                 const std::string ownedDirectory(directoryPath);
-                const std::string searchPattern = lumalink::platform::WindowsPathMapper::JoinScopedPath(ownedDirectory, "*");
-
-                WIN32_FIND_DATAA findData;
-                HANDLE handle = FindFirstFileA(searchPattern.c_str(), &findData);
-                if (handle == INVALID_HANDLE_VALUE)
+                DIR* directory = opendir(ownedDirectory.c_str());
+                if (directory == nullptr)
                 {
-                    return GetLastError() == ERROR_FILE_NOT_FOUND;
+                    return false;
                 }
 
-                DWORD lastError = ERROR_SUCCESS;
-                do
+                while (dirent* current = readdir(directory))
                 {
-                    const std::string_view name(findData.cFileName);
+                    const std::string_view name(current->d_name);
                     if (name == "." || name == "..")
                     {
                         continue;
                     }
 
-                    const bool isDirectory = (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    const std::string entryHostPath =
+                        lumalink::platform::PosixPathMapper::JoinScopedPath(ownedDirectory, name);
+                    bool isDirectory = false;
+#if defined(DT_DIR) && defined(DT_UNKNOWN)
+                    if (current->d_type == DT_DIR)
+                    {
+                        isDirectory = true;
+                    }
+                    else if (current->d_type == DT_UNKNOWN)
+                    {
+                        const FileMetadata entryMetadata = ReadMetadata(entryHostPath);
+                        isDirectory = entryMetadata.exists && entryMetadata.directory;
+                    }
+#else
+                    const FileMetadata entryMetadata = ReadMetadata(entryHostPath);
+                    isDirectory = entryMetadata.exists && entryMetadata.directory;
+#endif
+
                     if (!callback(name, isDirectory))
                     {
-                        FindClose(handle);
+                        closedir(directory);
                         return true;
                     }
-                } while (FindNextFileA(handle, &findData) != 0);
+                }
 
-                lastError = GetLastError();
-                FindClose(handle);
-                return lastError == ERROR_NO_MORE_FILES;
+                closedir(directory);
+                return true;
             }
 
-            class WindowsFile : public IFile
+            class PosixFile : public IFile
             {
               public:
-                WindowsFile(std::unique_ptr<std::fstream> stream, std::string hostPath, std::string path, bool directory,
+                PosixFile(std::unique_ptr<std::fstream> stream, std::string hostPath, std::string path, bool directory,
                            std::optional<std::size_t> size, std::optional<uint32_t> lastWrite, FileOpenMode mode)
                     : stream_(std::move(stream)), hostPath_(std::move(hostPath)), path_(std::move(path)),
                       directory_(directory), size_(size), lastWrite_(lastWrite), mode_(mode)
                 {
                 }
 
-                ~WindowsFile() override
+                ~PosixFile() override
                 {
                     close();
                 }
@@ -319,7 +295,7 @@ namespace lumalink::platform::windows
 
                 std::string_view name() const override
                 {
-                    return lumalink::platform::WindowsPathMapper::BasenameView(path_);
+                    return lumalink::platform::PosixPathMapper::BasenameView(path_);
                 }
 
                 std::string_view path() const override
@@ -392,12 +368,12 @@ namespace lumalink::platform::windows
                 std::size_t position_ = 0;
             };
 
-            class WindowsFs : public IFileSystem
+            class PosixFS : public IFileSystem
             {
               public:
-                WindowsFs() = default;
+                PosixFS() = default;
 
-                explicit WindowsFs(std::string_view rootPath)
+                explicit PosixFS(std::string_view rootPath)
                     : mapper_(rootPath)
                 {
                 }
@@ -439,7 +415,7 @@ namespace lumalink::platform::windows
 
                     if (metadata.directory)
                     {
-                        return std::make_unique<WindowsFile>(nullptr, std::move(ownedPath), virtualPath, true,
+                        return std::make_unique<PosixFile>(nullptr, std::move(ownedPath), virtualPath, true,
                                                             std::nullopt, metadata.lastWrite, mode);
                     }
 
@@ -451,7 +427,7 @@ namespace lumalink::platform::windows
                     }
 
                     const FileMetadata refreshedMetadata = ReadMetadata(ownedPath);
-                    return std::make_unique<WindowsFile>(std::move(stream), std::move(ownedPath), virtualPath, false,
+                    return std::make_unique<PosixFile>(std::move(stream), std::move(ownedPath), virtualPath, false,
                                                         refreshedMetadata.size, refreshedMetadata.lastWrite, mode);
                 }
 
@@ -518,8 +494,8 @@ namespace lumalink::platform::windows
                         [this, &hostDirectoryPath, &virtualDirectoryPath, &callback, recursive](std::string_view name,
                                                                                                 const bool isDirectory)
                         {
-                            const std::string entryHostPath = lumalink::platform::WindowsPathMapper::JoinScopedPath(hostDirectoryPath, name);
-                            const std::string entryVirtualPath = lumalink::platform::WindowsPathMapper::Join(virtualDirectoryPath, name);
+                            const std::string entryHostPath = lumalink::platform::PosixPathMapper::JoinScopedPath(hostDirectoryPath, name);
+                            const std::string entryVirtualPath = lumalink::platform::PosixPathMapper::Join(virtualDirectoryPath, name);
                             const DirectoryEntry entry{std::string(name), entryVirtualPath, isDirectory};
                             if (!callback(entry))
                             {
@@ -552,7 +528,7 @@ namespace lumalink::platform::windows
                     }
                 }
 
-                lumalink::platform::WindowsPathMapper mapper_{};
+                lumalink::platform::PosixPathMapper mapper_{};
             };
-
-} // namespace lumalink::platform::windows
+            
+} // namespace lumalink::platform::posix

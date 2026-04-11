@@ -2,19 +2,25 @@
 
 #include <LumaLinkPlatform.h>
 
-#include <lumalink/platform/transport/TransportTraits.h>
+#include <lumalink/platform/TransportTraits.h>
 
 #if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
-#include <lumalink/platform/windows/WindowsSocketTransport.h>
+#include <windows/WindowsSocketTransport.h>
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <lumalink/platform/posix/PosixSocketTransport.h>
+#include <posix/PosixSocketTransport.h>
 #endif
 
 #include <cstdint>

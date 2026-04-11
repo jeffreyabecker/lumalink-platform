@@ -1,9 +1,9 @@
 #include <unity.h>
 
 #if defined(_WIN32)
-#include <lumalink/platform/windows/WindowsFileAdapter.h>
+#include <windows/WindowsFileAdapter.h>
 #else
-#include <lumalink/platform/posix/PosixFileAdapter.h>
+#include <posix/PosixFileAdapter.h>
 #endif
 
 #include <cstdio>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../buffers/ByteStream.h"
+#include "ByteStream.h"
 
 #include <cstddef>
 #include <cstdint>

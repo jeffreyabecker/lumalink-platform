@@ -2,23 +2,24 @@
 
 #include <span>
 
-#include "lumalink/platform/PathMapper.h"
-#include "lumalink/platform/buffers/Availability.h"
-#include "lumalink/platform/buffers/ByteStream.h"
+#include "platform/PathMapper.h"
+#include "platform/Availability.h"
+#include "platform/ByteStream.h"
 
 
-#include "lumalink/platform/filesystem/FileSystem.h"
-#include "lumalink/platform/memory/MemoryFileAdapter.h"
+#include "platform/FileSystem.h"
+#include "platform/MemoryFileAdapter.h"
+#include "platform/PathMapper.h"
 
 
-#include "lumalink/platform/transport/TransportInterfaces.h"
-#include "lumalink/platform/transport/TransportTraits.h"
-#include "lumalink/platform/TransportFactory.h"
-#include "lumalink/platform/PathMapper.h"
+#include "platform/TransportInterfaces.h"
+#include "platform/TransportTraits.h"
+#include "platform/TransportFactory.h"
+#include "platform/PathMapper.h"
 
-#include "lumalink/platform/time/ClockTypes.h"
-#include "lumalink/platform/time/Clock.h"
-#include "lumalink/platform/time/ManualClock.h"
-#include "lumalink/platform/time/TimeSource.h"
-#include "lumalink/platform/ClockFactory.h"
+#include "platform/ClockTypes.h"
+#include "platform/Clock.h"
+#include "platform/ManualClock.h"
+#include "platform/TimeSource.h"
+
 

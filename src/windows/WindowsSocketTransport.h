@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../transport/TransportInterfaces.h"
+#include "../lumalink/platform/TransportInterfaces.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -316,7 +316,7 @@ public:
     }
 
     const int bytesRead = recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
-                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>((std::numeric_limits<int>::max)()))),
                                0);
     if (bytesRead > 0) {
       return static_cast<std::size_t>(bytesRead);
@@ -340,7 +340,7 @@ public:
     }
 
     const int bytesRead = recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
-                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>((std::numeric_limits<int>::max)()))),
                                MSG_PEEK);
     if (bytesRead > 0) {
       return static_cast<std::size_t>(bytesRead);
@@ -366,7 +366,7 @@ public:
     std::size_t totalSent = 0;
     while (totalSent < buffer.size()) {
       const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + totalSent),
-                            static_cast<int>((std::min)(buffer.size() - totalSent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                            static_cast<int>((std::min)(buffer.size() - totalSent, static_cast<std::size_t>((std::numeric_limits<int>::max)()))),
                             0);
       if (sent > 0) {
         totalSent += static_cast<std::size_t>(sent);
@@ -559,7 +559,7 @@ public:
     }
 
     const int sent = sendto(socket_.get(), reinterpret_cast<const char *>(outboundPacket_.data()),
-                            static_cast<int>((std::min)(outboundPacket_.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                            static_cast<int>((std::min)(outboundPacket_.size(), static_cast<std::size_t>((std::numeric_limits<int>::max)()))),
                             0, reinterpret_cast<const sockaddr *>(&outboundDestination_), outboundDestinationLength_);
     outboundPacket_.clear();
     outboundDestinationLength_ = 0;
@@ -593,7 +593,7 @@ public:
     sockaddr_storage sourceAddress{};
     socklen_t sourceAddressLength = sizeof(sourceAddress);
     const int received = recvfrom(socket_.get(), reinterpret_cast<char *>(packetBuffer.data()),
-                                  static_cast<int>((std::min)(packetBuffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                                  static_cast<int>((std::min)(packetBuffer.size(), static_cast<std::size_t>((std::numeric_limits<int>::max)()))),
                                   0, reinterpret_cast<sockaddr *>(&sourceAddress), &sourceAddressLength);
     if (received <= 0) {
       const int errorCode = lastSocketError();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../filesystem/FileSystem.h"
+#include "../filesystem/PathUtility.h"
 
 #include <memory>
 #include <span>
@@ -9,13 +10,14 @@
 
 #if defined(ARDUINO) && __has_include(<FS.h>)
 #include <FS.h>
-#include "../PathMapper.h"
 
 #include <optional>
 #include <utility>
 
 namespace lumalink::platform::arduino
 {
+            using lumalink::platform::filesystem::PathUtility;
+
             inline std::optional<std::size_t> FileSize(File& file, const bool isDirectory)
             {
                 if (!file || isDirectory)
@@ -47,13 +49,18 @@ namespace lumalink::platform::arduino
                 return value != nullptr ? std::string(value) : std::string();
             }
 
+            inline std::string AppendPath(std::string_view base, std::string_view name)
+            {
+                return PathUtility::join(base, name);
+            }
+
             class ArduinoFile : public IFile
             {
               public:
                 ArduinoFile(FS& fileSystem, File file, std::string fsPath, std::string path, bool directory,
                             std::optional<std::size_t> size, std::optional<uint32_t> lastWrite, FileOpenMode mode)
                     : fileSystem_(fileSystem), file_(std::move(file)), fsPath_(std::move(fsPath)), path_(std::move(path)),
-                      name_(std::string(lumalink::platform::PosixPathMapper::BasenameView(path_))), directory_(directory), size_(size),
+                        name_(std::string(PathUtility::getFileName(path_))), directory_(directory), size_(size),
                       lastWrite_(lastWrite), mode_(mode)
                 {
                 }
@@ -230,13 +237,18 @@ namespace lumalink::platform::arduino
             {
               public:
                 explicit ArduinoFS(FS& fileSystem)
-                    : fileSystem_(fileSystem), mapper_(lumalink::platform::PosixPathMapper::NormalizeRootPath("/"))
+                    : fileSystem_(fileSystem)
                 {
                 }
 
-                ArduinoFS(FS& fileSystem, std::string_view rootPath)
-                    : fileSystem_(fileSystem), mapper_(lumalink::platform::PosixPathMapper::NormalizeRootPath(rootPath))
+                ArduinoFS(FS& fileSystem, std::string_view /*rootPath*/)
+                    : fileSystem_(fileSystem)
                 {
+                }
+
+                std::string normalizePath(std::string_view path) const override
+                {
+                    return std::string(path);
                 }
 
                 bool exists(std::string_view path) const override
@@ -246,7 +258,7 @@ namespace lumalink::platform::arduino
                         return false;
                     }
 
-                    const std::string fsPath = resolveFsPath(path);
+                    const std::string fsPath(path);
                     return fileSystem_.exists(fsPath.c_str());
                 }
 
@@ -257,7 +269,7 @@ namespace lumalink::platform::arduino
                         return false;
                     }
 
-                    const std::string fsPath = resolveFsPath(path);
+                    const std::string fsPath(path);
                     return fileSystem_.mkdir(fsPath.c_str());
                 }
 
@@ -268,8 +280,8 @@ namespace lumalink::platform::arduino
                         return nullptr;
                     }
 
-                    const std::string fsPath = resolveFsPath(path);
-                    const std::string exposedPath = exposePath(path);
+                    const std::string fsPath(path);
+                    const std::string exposedPath(path);
                     File metadataFile = fileSystem_.open(fsPath.c_str(), "r");
                     const bool existed = static_cast<bool>(metadataFile);
                     const bool isDirectory = metadataFile && metadataFile.isDirectory();
@@ -307,7 +319,7 @@ namespace lumalink::platform::arduino
                         return false;
                     }
 
-                    const std::string fsPath = resolveFsPath(path);
+                    const std::string fsPath(path);
                     File file = fileSystem_.open(fsPath.c_str(), "r");
                     if (!file)
                     {
@@ -326,8 +338,8 @@ namespace lumalink::platform::arduino
                         return false;
                     }
 
-                    const std::string fromPath = resolveFsPath(from);
-                    const std::string toPath = resolveFsPath(to);
+                    const std::string fromPath(from);
+                    const std::string toPath(to);
                     return fileSystem_.rename(fromPath.c_str(), toPath.c_str());
                 }
 
@@ -339,21 +351,12 @@ namespace lumalink::platform::arduino
                         return false;
                     }
 
-                    return listResolved(resolveFsPath(directoryPath), exposePath(directoryPath), callback, recursive);
+                    return listResolved(directoryPath, directoryPath, callback, recursive);
                 }
 
               private:
-                std::string resolveFsPath(std::string_view path) const
-                {
-                    return mapper_.resolveScopedPath(path);
-                }
 
-                std::string exposePath(std::string_view path) const
-                {
-                    return mapper_.exposePath(path);
-                }
-
-                bool listResolved(std::string_view fsDirectoryPath, std::string_view virtualDirectoryPath,
+                bool listResolved(std::string_view fsDirectoryPath, std::string_view directoryPath,
                                   const DirectoryEntryCallback& callback, const bool recursive)
                 {
                     File directory = fileSystem_.open(std::string(fsDirectoryPath).c_str(), "r");
@@ -374,12 +377,12 @@ namespace lumalink::platform::arduino
                         std::string entryFsPath = CopyCString(entry.fullName());
                         if (entryFsPath.empty())
                         {
-                            entryFsPath = lumalink::platform::PosixPathMapper::JoinScopedPath(fsDirectoryPath, CopyCString(entry.name()));
+                            entryFsPath = AppendPath(fsDirectoryPath, CopyCString(entry.name()));
                         }
 
-                        const std::string entryVirtualPath = lumalink::platform::PosixPathMapper::Join(virtualDirectoryPath, CopyCString(entry.name()));
-                        const DirectoryEntry directoryEntry{std::string(lumalink::platform::PosixPathMapper::BasenameView(entryVirtualPath)),
-                                                            entryVirtualPath, entry.isDirectory()};
+                        const std::string entryPath = AppendPath(directoryPath, CopyCString(entry.name()));
+                        const DirectoryEntry directoryEntry{std::string(PathUtility::getFileName(entryPath)),
+                                                            entryPath, entry.isDirectory()};
                         if (!callback(directoryEntry))
                         {
                             entry.close();
@@ -387,7 +390,7 @@ namespace lumalink::platform::arduino
                             return true;
                         }
 
-                        if (recursive && entry.isDirectory() && !listResolved(entryFsPath, entryVirtualPath, callback, true))
+                        if (recursive && entry.isDirectory() && !listResolved(entryFsPath, entryPath, callback, true))
                         {
                             entry.close();
                             directory.close();
@@ -418,8 +421,7 @@ namespace lumalink::platform::arduino
                 }
 
                 FS& fileSystem_;
-                    lumalink::platform::PosixPathMapper mapper_{};
-                };
+            };
     } // namespace lumalink::platform::arduino
 
 #else

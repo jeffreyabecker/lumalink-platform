@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../filesystem/FileSystem.h"
-
-#include "../PathMapper.h"
+#include "../filesystem/PathUtility.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -29,6 +28,7 @@ namespace lumalink::platform::posix
             using lumalink::platform::filesystem::FileOpenMode;
             using lumalink::platform::filesystem::IFile;
             using lumalink::platform::filesystem::IFileSystem;
+            using lumalink::platform::filesystem::PathUtility;
             struct FileMetadata
             {
                 bool exists = false;
@@ -89,11 +89,16 @@ namespace lumalink::platform::posix
                 return ::rename(ownedFrom.c_str(), ownedTo.c_str()) == 0;
             }
 
+            inline std::string AppendPath(std::string_view base, std::string_view name)
+            {
+                return PathUtility::join(base, name);
+            }
+
             template <typename Callback>
             inline bool EnumerateHostDirectory(std::string_view directoryPath, Callback&& callback)
             {
-                const std::string ownedDirectory(directoryPath);
-                DIR* directory = opendir(ownedDirectory.c_str());
+                const std::string directoryPathString(directoryPath);
+                DIR* directory = opendir(directoryPathString.c_str());
                 if (directory == nullptr)
                 {
                     return false;
@@ -108,7 +113,7 @@ namespace lumalink::platform::posix
                     }
 
                     const std::string entryHostPath =
-                        lumalink::platform::PosixPathMapper::JoinScopedPath(ownedDirectory, name);
+                        AppendPath(directoryPathString, name);
                     bool isDirectory = false;
 #if defined(DT_DIR) && defined(DT_UNKNOWN)
                     if (current->d_type == DT_DIR)
@@ -142,7 +147,8 @@ namespace lumalink::platform::posix
                 PosixFile(std::unique_ptr<std::fstream> stream, std::string hostPath, std::string path, bool directory,
                            std::optional<std::size_t> size, std::optional<uint32_t> lastWrite, FileOpenMode mode)
                     : stream_(std::move(stream)), hostPath_(std::move(hostPath)), path_(std::move(path)),
-                      directory_(directory), size_(size), lastWrite_(lastWrite), mode_(mode)
+                                  name_(std::string(PathUtility::getFileName(path_))), directory_(directory), size_(size),
+                                            lastWrite_(lastWrite), mode_(mode)
                 {
                 }
 
@@ -296,7 +302,7 @@ namespace lumalink::platform::posix
 
                 std::string_view name() const override
                 {
-                    return lumalink::platform::PosixPathMapper::BasenameView(path_);
+                    return name_;
                 }
 
                 std::string_view path() const override
@@ -362,6 +368,7 @@ namespace lumalink::platform::posix
                 std::unique_ptr<std::fstream> stream_;
                 std::string hostPath_;
                 std::string path_;
+                std::string name_;
                 bool directory_ = false;
                 std::optional<std::size_t> size_;
                 std::optional<uint32_t> lastWrite_;
@@ -374,10 +381,14 @@ namespace lumalink::platform::posix
               public:
                 PosixFS() = default;
 
-                explicit PosixFS(std::string_view rootPath)
-                    : mapper_(rootPath)
+                                explicit PosixFS(std::string_view /*rootPath*/)
                 {
                 }
+
+                                std::string normalizePath(std::string_view path) const override
+                                {
+                                    return std::string(path);
+                                }
 
                 bool exists(std::string_view path) const override
                 {
@@ -386,7 +397,7 @@ namespace lumalink::platform::posix
                         return false;
                     }
 
-                    return ReadMetadata(resolveHostPath(path)).exists;
+                    return ReadMetadata(path).exists;
                 }
 
                 bool mkdir(std::string_view path) override
@@ -396,7 +407,7 @@ namespace lumalink::platform::posix
                         return false;
                     }
 
-                    return CreateHostDirectory(resolveHostPath(path));
+                    return CreateHostDirectory(path);
                 }
 
                 FileHandle open(std::string_view path, FileOpenMode mode) override
@@ -406,8 +417,8 @@ namespace lumalink::platform::posix
                         return nullptr;
                     }
 
-                    const std::string virtualPath = exposePath(path);
-                    std::string ownedPath = resolveHostPath(path);
+                    const std::string virtualPath(path);
+                    std::string ownedPath(path);
                     const FileMetadata metadata = ReadMetadata(ownedPath);
                     if (!metadata.exists && mode == FileOpenMode::Read)
                     {
@@ -440,7 +451,7 @@ namespace lumalink::platform::posix
                         return false;
                     }
 
-                    return listResolved(resolveHostPath(directoryPath), exposePath(directoryPath), callback, recursive);
+                    return listResolved(directoryPath, directoryPath, callback, recursive);
                 }
 
                 bool remove(std::string_view path) override
@@ -450,7 +461,7 @@ namespace lumalink::platform::posix
                         return false;
                     }
 
-                    const std::string ownedPath = resolveHostPath(path);
+                    const std::string ownedPath(path);
                     const FileMetadata metadata = ReadMetadata(ownedPath);
                     if (!metadata.exists)
                     {
@@ -467,21 +478,11 @@ namespace lumalink::platform::posix
                         return false;
                     }
 
-                    return RenameHostPath(resolveHostPath(from), resolveHostPath(to));
+                                        return RenameHostPath(from, to);
                 }
 
               private:
-                std::string resolveHostPath(std::string_view path) const
-                {
-                    return mapper_.resolveScopedPath(path);
-                }
-
-                std::string exposePath(std::string_view path) const
-                {
-                    return mapper_.exposePath(path);
-                }
-
-                bool listResolved(std::string_view hostDirectoryPath, std::string_view virtualDirectoryPath,
+                bool listResolved(std::string_view hostDirectoryPath, std::string_view directoryPath,
                                   const DirectoryEntryCallback& callback, const bool recursive) const
                 {
                     const FileMetadata metadata = ReadMetadata(hostDirectoryPath);
@@ -492,12 +493,12 @@ namespace lumalink::platform::posix
 
                     return EnumerateHostDirectory(
                         hostDirectoryPath,
-                        [this, &hostDirectoryPath, &virtualDirectoryPath, &callback, recursive](std::string_view name,
-                                                                                                const bool isDirectory)
+                        [this, &hostDirectoryPath, &directoryPath, &callback, recursive](std::string_view name,
+                                                                                          const bool isDirectory)
                         {
-                            const std::string entryHostPath = lumalink::platform::PosixPathMapper::JoinScopedPath(hostDirectoryPath, name);
-                            const std::string entryVirtualPath = lumalink::platform::PosixPathMapper::Join(virtualDirectoryPath, name);
-                            const DirectoryEntry entry{std::string(name), entryVirtualPath, isDirectory};
+                            const std::string entryHostPath = AppendPath(hostDirectoryPath, name);
+                            const std::string entryPath = AppendPath(directoryPath, name);
+                            const DirectoryEntry entry{std::string(name), entryPath, isDirectory};
                             if (!callback(entry))
                             {
                                 return false;
@@ -505,7 +506,7 @@ namespace lumalink::platform::posix
 
                             if (recursive && isDirectory)
                             {
-                                return listResolved(entryHostPath, entryVirtualPath, callback, true);
+                                return listResolved(entryHostPath, entryPath, callback, true);
                             }
 
                             return true;
@@ -528,8 +529,6 @@ namespace lumalink::platform::posix
                                               : (std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
                     }
                 }
-
-                lumalink::platform::PosixPathMapper mapper_{};
             };
             
 } // namespace lumalink::platform::posix

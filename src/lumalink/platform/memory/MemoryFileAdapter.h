@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../filesystem/FileSystem.h"
+#include "../filesystem/PathUtility.h"
 
 #include <algorithm>
 #include <chrono>
@@ -23,6 +24,7 @@ namespace lumalink::platform::memory
     using lumalink::platform::filesystem::FileOpenMode;
     using lumalink::platform::filesystem::IFile;
     using lumalink::platform::filesystem::IFileSystem;
+    using lumalink::platform::filesystem::PathUtility;
 
     class MemoryFile ;
     class MemoryFileSystem : public IFileSystem
@@ -38,6 +40,11 @@ namespace lumalink::platform::memory
         }
 
         ~MemoryFileSystem() override = default;
+
+        std::string normalizePath(std::string_view path) const override
+        {
+            return std::string(path);
+        }
 
         bool exists(std::string_view path) const override
         {
@@ -59,38 +66,14 @@ namespace lumalink::platform::memory
                 return false;
             }
 
-            std::string p(path);
-            if (p.front() == '/')
+            const std::string_view parentPathView = PathUtility::getDirName(path);
+            const std::string parentPath = parentPathView.empty() ? std::string("/") : std::string(parentPathView);
+            const std::string target = std::string(PathUtility::getFileName(path));
+            auto parent = findNode(parentPath);
+            if (!parent)
             {
-                p.erase(0, 1);
+                return false;
             }
-
-            std::vector<std::string> parts;
-            size_t pos = 0;
-            while (pos < p.size())
-            {
-                auto next = p.find('/', pos);
-                if (next == std::string::npos)
-                {
-                    parts.push_back(p.substr(pos));
-                    break;
-                }
-                parts.push_back(p.substr(pos, next - pos));
-                pos = next + 1;
-            }
-
-            auto parent = root_;
-            for (size_t i = 0; i + 1 < parts.size(); ++i)
-            {
-                auto it = parent->children.find(parts[i]);
-                if (it == parent->children.end())
-                {
-                    return false;
-                }
-                parent = it->second;
-            }
-
-            const std::string &target = parts.back();
             auto it = parent->children.find(target);
             if (it == parent->children.end())
             {
@@ -111,18 +94,14 @@ namespace lumalink::platform::memory
             }
 
             // Remove from old parent
-            std::string sf(from);
-            if (!sf.empty() && sf.front() == '/')
-                sf.erase(0, 1);
-            size_t pos = sf.find_last_of('/');
-            std::string parentPath = pos == std::string::npos ? std::string("/") : std::string("/" + sf.substr(0, pos + 1));
+            const std::string_view parentPathView = PathUtility::getDirName(from);
+            const std::string parentPath = parentPathView.empty() ? std::string("/") : std::string(parentPathView);
 
             // Create target parent
-            std::string tf(to);
-            if (!tf.empty() && tf.front() == '/')
-                tf.erase(0, 1);
-            size_t tpos = tf.find_last_of('/');
-            std::string targetParentPath = tpos == std::string::npos ? std::string("/") : std::string("/" + tf.substr(0, tpos + 1));
+            const std::string_view targetParentPathView = PathUtility::getDirName(to);
+            const std::string targetParentPath = targetParentPathView.empty()
+                ? std::string("/")
+                : std::string(targetParentPathView);
 
             auto sourceParent = findNode(parentPath);
             if (!sourceParent)
@@ -130,7 +109,7 @@ namespace lumalink::platform::memory
                 return false;
             }
 
-            std::string srcName = sf.substr(pos == std::string::npos ? 0 : pos + 1);
+            std::string srcName = std::string(PathUtility::getFileName(from));
             auto it = sourceParent->children.find(srcName);
             if (it == sourceParent->children.end())
             {
@@ -138,7 +117,7 @@ namespace lumalink::platform::memory
             }
 
             auto targetParent = createPath(targetParentPath, true);
-            std::string destName = tf.substr(tpos == std::string::npos ? 0 : tpos + 1);
+            std::string destName = std::string(PathUtility::getFileName(to));
 
             // move node
             auto nodePtr = it->second;
@@ -148,15 +127,15 @@ namespace lumalink::platform::memory
             std::function<void(const std::shared_ptr<Node> &, const std::string &)> updatePaths;
             updatePaths = [&](const std::shared_ptr<Node> &n, const std::string &parentPath)
             {
-                n->path = parentPath + (parentPath.back() == '/' ? std::string() : std::string("/")) + n->name;
+                n->path = PathUtility::join(parentPath, n->name);
                 for (auto &c : n->children)
                 {
-                    updatePaths(c.second, n->path + "/");
+                    updatePaths(c.second, n->path);
                 }
             };
 
             targetParent->children[destName] = nodePtr;
-            updatePaths(nodePtr, targetParent->path + (targetParent->path.back() == '/' ? std::string() : std::string("/")));
+            updatePaths(nodePtr, targetParent->path);
             targetParent->lastWrite = static_cast<uint32_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
             return true;
         }
@@ -299,14 +278,7 @@ namespace lumalink::platform::memory
                     node->name = part;
                     node->isDirectory = !last ? true : asDirectory;
                     // set path
-                    if (current->path == "/")
-                    {
-                        node->path = std::string("/") + node->name;
-                    }
-                    else
-                    {
-                        node->path = current->path + "/" + node->name;
-                    }
+                    node->path = PathUtility::join(current->path, node->name);
                     node->lastWrite = static_cast<uint32_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
                     current->children[part] = node;
                     current = node;

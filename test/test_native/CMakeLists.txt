@@ -12,6 +12,7 @@ add_executable(lumalink_platform_tests
     test_main.cpp
     test_filesystem_native.cpp
     test_memory_filesystem.cpp
+    test_path_utility.cpp
     test_time.cpp
     test_transport_native.cpp
 )

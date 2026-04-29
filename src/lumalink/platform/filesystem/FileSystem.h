@@ -10,11 +10,17 @@
 #include <string>
 #include <string_view>
 
-namespace lumalink::platform::filesystem {
-    inline constexpr std::string_view ContractName = "filesystem";
-    enum class FileOpenMode { Read, Write, ReadWrite };
+namespace lumalink::platform::filesystem
+{
+    enum class FileOpenMode
+    {
+        Read,
+        Write,
+        ReadWrite
+    };
 
-    class IFile : public lumalink::platform::buffers::IByteChannel {
+    class IFile : public lumalink::platform::buffers::IByteChannel
+    {
     public:
         ~IFile() override = default;
         virtual bool isDirectory() const = 0;
@@ -27,7 +33,8 @@ namespace lumalink::platform::filesystem {
 
     using FileHandle = std::unique_ptr<IFile>;
 
-    struct DirectoryEntry {
+    struct DirectoryEntry
+    {
         std::string name;
         std::string path;
         bool isDirectory = false;
@@ -35,9 +42,11 @@ namespace lumalink::platform::filesystem {
 
     using DirectoryEntryCallback = std::function<bool(const DirectoryEntry &entry)>;
 
-    class IFileSystem {
+    class IFileSystem
+    {
     public:
         virtual ~IFileSystem() = default;
+        virtual std::string normalizePath(std::string_view path) const = 0;
         virtual bool exists(std::string_view path) const = 0;
         virtual bool mkdir(std::string_view path) = 0;
         virtual FileHandle open(std::string_view path, FileOpenMode mode) = 0;
@@ -47,4 +56,5 @@ namespace lumalink::platform::filesystem {
                           const DirectoryEntryCallback &callback,
                           bool recursive = false) = 0;
     };
+
 }

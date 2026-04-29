@@ -93,11 +93,42 @@ namespace lumalink::platform::filesystem
 
             return path.substr(0, dot);
         }
+        static std::string addExtension(std::string_view path, std::string_view extension)
+        {
+            if (extension.empty())
+            {
+                return std::string(path);
+            }
+
+            std::string result(path);
+            std::string_view normalizedExtension = extension;
+            while (!normalizedExtension.empty() && normalizedExtension.front() == '.')
+            {
+                normalizedExtension.remove_prefix(1);
+            }
+
+            if (normalizedExtension.empty())
+            {
+                return result;
+            }
+
+            if (!result.empty() && result.back() != '.')
+            {
+                result += '.';
+            }
+            result += normalizedExtension;
+            return result;
+        }
         static std::string_view makeRelative(std::string_view path, std::string_view base, bool includeLeadingSeparator = false)
         {
             if (base.empty())
             {
                 return path;
+            }
+
+            if (path == base)
+            {
+                return std::string_view();
             }
 
             if (path.size() > base.size() && path.compare(0, base.size(), base) == 0 &&

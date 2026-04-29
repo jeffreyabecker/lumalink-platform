@@ -77,12 +77,24 @@ void test_native_filesystem_normalize_path()
     TEST_ASSERT_NOT_NULL(fs.get());
 
 #if defined(_WIN32)
-    TEST_ASSERT_EQUAL_STRING("./dir/file.txt", fs->normalizePath(".\\dir\\file.txt").c_str());
+    const DWORD cwdSize = GetCurrentDirectoryA(0, nullptr);
+    TEST_ASSERT_TRUE(cwdSize > 0);
+    std::string cwd(cwdSize - 1, '\0');
+    GetCurrentDirectoryA(cwdSize, cwd.data());
+    for (char &ch : cwd)
+    {
+        if (ch == '\\')
+        {
+            ch = '/';
+        }
+    }
+
+    TEST_ASSERT_EQUAL_STRING((cwd + "/dir/file.txt").c_str(), fs->normalizePath(".\\dir\\file.txt").c_str());
+    TEST_ASSERT_EQUAL_STRING((cwd + "/dir/file.txt").c_str(), fs->normalizePath("./dir/file.txt").c_str());
 #else
     TEST_ASSERT_EQUAL_STRING(".\\dir\\file.txt", fs->normalizePath(".\\dir\\file.txt").c_str());
-#endif
-
     TEST_ASSERT_EQUAL_STRING("./dir/file.txt", fs->normalizePath("./dir/file.txt").c_str());
+#endif
 }
 
 #if !defined(_WIN32)

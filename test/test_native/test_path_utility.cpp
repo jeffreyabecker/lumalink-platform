@@ -46,6 +46,14 @@ void test_path_utility_remove_extension()
     TEST_ASSERT_EQUAL_STRING("file", std::string(PathUtility::removeExtension("file")).c_str());
 }
 
+void test_path_utility_add_extension()
+{
+    TEST_ASSERT_EQUAL_STRING("/root/dir/file.txt", PathUtility::addExtension("/root/dir/file", "txt").c_str());
+    TEST_ASSERT_EQUAL_STRING("archive.tar.gz", PathUtility::addExtension("archive.tar", "gz").c_str());
+    TEST_ASSERT_EQUAL_STRING("/root/dir/file.txt", PathUtility::addExtension("/root/dir/file", ".txt").c_str());
+    TEST_ASSERT_EQUAL_STRING("file", PathUtility::addExtension("file", "").c_str());
+}
+
 void test_path_utility_make_relative()
 {
     TEST_ASSERT_EQUAL_STRING("dir/file.txt",

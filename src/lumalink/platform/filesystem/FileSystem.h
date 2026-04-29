@@ -72,7 +72,13 @@ namespace lumalink::platform::filesystem
             {
                 return true;
             }
-            auto parent = PathUtility::getDirName(path);
+
+            std::string_view parent = PathUtility::getDirName(path);
+            if (parent.empty() && !path.empty() && path.front() == '/')
+            {
+                parent = "/";
+            }
+
             if (ensureDirectory(parent))
             {
                 return mkdir(path);

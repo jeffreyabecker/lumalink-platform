@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../filesystem/FileSystem.h"
+#include "../filesystem/ScopedFileSystem.h"
 #include "../filesystem/PathUtility.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -579,6 +580,23 @@ namespace lumalink::platform::windows
             }
 
             return RenameHostPath(toHostPath(from), toHostPath(to));
+        }
+
+        std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) override
+        {
+            if (rootPath.empty())
+            {
+                return nullptr;
+            }
+
+            const FileMetadata metadata = ReadHostMetadata(toHostPath(rootPath));
+            if (!metadata.exists || !metadata.directory)
+            {
+                return nullptr;
+            }
+
+            return std::make_unique<lumalink::platform::filesystem::ScopedFileSystem>(
+                std::string(rootPath), *this);
         }
 
     private:

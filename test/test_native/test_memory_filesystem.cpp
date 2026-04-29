@@ -63,6 +63,11 @@ namespace
         {
             return false;
         }
+
+        std::unique_ptr<IFileSystem> getScoped(std::string_view) override
+        {
+            return nullptr;
+        }
     };
 }
 
@@ -166,10 +171,10 @@ void test_memory_filesystem_normalize_path_is_noop()
 
 void test_scoped_filesystem_scopes_paths_and_exposes_scoped_view()
 {
-    auto inner = std::make_unique<MemoryFileSystem>();
-    auto *innerPtr = inner.get();
+    MemoryFileSystem inner;
+    auto *innerPtr = &inner;
 
-    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/root", std::move(inner));
+    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/root", inner);
     TEST_ASSERT_NOT_NULL(fs.get());
 
     TEST_ASSERT_TRUE(fs->mkdir("/dir"));
@@ -221,10 +226,10 @@ void test_scoped_filesystem_scopes_paths_and_exposes_scoped_view()
 
 void test_scoped_filesystem_root_scope_passthroughs_paths()
 {
-    auto inner = std::make_unique<MemoryFileSystem>();
-    auto *innerPtr = inner.get();
+    MemoryFileSystem inner;
+    auto *innerPtr = &inner;
 
-    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/", std::move(inner));
+    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/", inner);
     TEST_ASSERT_NOT_NULL(fs.get());
 
     FileHandle writable = fs->open("/top.txt", FileOpenMode::ReadWrite);
@@ -245,8 +250,8 @@ void test_scoped_filesystem_root_scope_passthroughs_paths()
 
 void test_scoped_filesystem_exposes_scoped_directory_handles_and_entries()
 {
-    auto inner = std::make_unique<MemoryFileSystem>();
-    auto *innerPtr = inner.get();
+    MemoryFileSystem inner;
+    auto *innerPtr = &inner;
 
     TEST_ASSERT_TRUE(innerPtr->mkdir("/root"));
     TEST_ASSERT_TRUE(innerPtr->mkdir("/root/nested"));
@@ -254,7 +259,7 @@ void test_scoped_filesystem_exposes_scoped_directory_handles_and_entries()
     TEST_ASSERT_NOT_NULL(innerFile.get());
     innerFile->close();
 
-    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/root", std::move(inner));
+    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/root", inner);
     TEST_ASSERT_NOT_NULL(fs.get());
 
     TEST_ASSERT_TRUE(fs->exists("/nested"));
@@ -274,8 +279,8 @@ void test_scoped_filesystem_exposes_scoped_directory_handles_and_entries()
 
 void test_scoped_filesystem_normalize_path_delegates_to_inner_filesystem()
 {
-    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>(
-        "/root", std::make_unique<NormalizingStubFileSystem>());
+    NormalizingStubFileSystem inner;
+    std::unique_ptr<IFileSystem> fs = std::make_unique<ScopedFileSystem>("/root", inner);
     TEST_ASSERT_NOT_NULL(fs.get());
 
     TEST_ASSERT_EQUAL_STRING("/dir/file.txt", fs->normalizePath("\\dir\\file.txt").c_str());

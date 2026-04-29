@@ -49,9 +49,9 @@ struct ScopedTempFs
         : tempDir(MakeTempDirectoryPath(label))
     {
         std::filesystem::create_directories(tempDir);
-        auto native = std::make_unique<NativeFSImpl>();
-        root = native->normalizePath(tempDir.string());
-        fs = std::make_unique<ScopedFileSystem>(root, std::move(native));
+        inner = std::make_unique<NativeFSImpl>();
+        root = inner->normalizePath(tempDir.string());
+        fs = std::make_unique<ScopedFileSystem>(root, *inner);
     }
 
     ~ScopedTempFs()
@@ -62,6 +62,7 @@ struct ScopedTempFs
 
     std::filesystem::path tempDir;
     std::string root;
+    std::unique_ptr<NativeFSImpl> inner;
     std::unique_ptr<IFileSystem> fs;
 };
 

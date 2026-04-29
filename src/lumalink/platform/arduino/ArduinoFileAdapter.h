@@ -343,6 +343,23 @@ namespace lumalink::platform::arduino
                     return fileSystem_.rename(fromPath.c_str(), toPath.c_str());
                 }
 
+                std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) override
+                {
+                    if (rootPath.empty())
+                    {
+                        return nullptr;
+                    }
+
+                    File directory = fileSystem_.open(std::string(rootPath).c_str(), "r");
+                    if (!directory || !directory.isDirectory())
+                    {
+                        return nullptr;
+                    }
+
+                    return std::make_unique<lumalink::platform::filesystem::ScopedFileSystem>(
+                        std::string(rootPath), fileSystem_);
+                }
+
                 bool list(std::string_view directoryPath, const DirectoryEntryCallback& callback,
                           bool recursive = false) override
                 {

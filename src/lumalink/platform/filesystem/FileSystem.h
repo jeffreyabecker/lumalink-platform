@@ -55,6 +55,7 @@ namespace lumalink::platform::filesystem
         virtual bool list(std::string_view directoryPath,
                           const DirectoryEntryCallback &callback,
                           bool recursive = false) = 0;
+        virtual std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) = 0;
     };
 
 }

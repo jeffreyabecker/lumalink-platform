@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../filesystem/FileSystem.h"
+#include "../filesystem/ScopedFileSystem.h"
 #include "../filesystem/PathUtility.h"
 
 #include <algorithm>
@@ -26,7 +27,7 @@ namespace lumalink::platform::memory
     using lumalink::platform::filesystem::IFileSystem;
     using lumalink::platform::filesystem::PathUtility;
 
-    class MemoryFile ;
+    class MemoryFile;
     class MemoryFileSystem : public IFileSystem
     {
     public:
@@ -100,8 +101,8 @@ namespace lumalink::platform::memory
             // Create target parent
             const std::string_view targetParentPathView = PathUtility::getDirName(to);
             const std::string targetParentPath = targetParentPathView.empty()
-                ? std::string("/")
-                : std::string(targetParentPathView);
+                                                     ? std::string("/")
+                                                     : std::string(targetParentPathView);
 
             auto sourceParent = findNode(parentPath);
             if (!sourceParent)
@@ -179,6 +180,21 @@ namespace lumalink::platform::memory
             };
 
             return walk(node);
+        }
+        std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) override
+        {
+            if (rootPath.empty())
+            {
+                return nullptr;
+            }
+
+            auto node = findNode(rootPath);
+            if (!node || !node->isDirectory)
+            {
+                return nullptr;
+            }
+
+            return std::make_unique<lumalink::platform::filesystem::ScopedFileSystem>(std::string(rootPath), *this);
         }
 
     private:

@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <span>
 
 namespace lumalink::platform::filesystem
 {
@@ -83,34 +84,34 @@ namespace lumalink::platform::filesystem
     class ScopedFileSystem final : public IFileSystem
     {
     public:
-        ScopedFileSystem(std::string_view rootPath, std::unique_ptr<IFileSystem> innerFileSystem)
-            : rootPath_(rootPath), innerFileSystem_(std::move(innerFileSystem))
+        ScopedFileSystem(std::string_view rootPath, IFileSystem &innerFileSystem)
+            : rootPath_(rootPath), innerFileSystem_(innerFileSystem)
         {
         }
 
         std::string normalizePath(std::string_view path) const override
         {
-            return innerFileSystem_ != nullptr ? innerFileSystem_->normalizePath(path) : std::string(path);
+            return innerFileSystem_.normalizePath(path);
         }
 
         bool exists(std::string_view path) const override
         {
-            return innerFileSystem_ != nullptr && !path.empty() && innerFileSystem_->exists(scopePath(path));
+            return !path.empty() && innerFileSystem_.exists(scopePath(path));
         }
 
         bool mkdir(std::string_view path) override
         {
-            return innerFileSystem_ != nullptr && !path.empty() && innerFileSystem_->mkdir(scopePath(path));
+            return !path.empty() && innerFileSystem_.mkdir(scopePath(path));
         }
 
         FileHandle open(std::string_view path, FileOpenMode mode) override
         {
-            if (innerFileSystem_ == nullptr || path.empty())
+            if (path.empty())
             {
                 return nullptr;
             }
 
-            FileHandle innerFile = innerFileSystem_->open(scopePath(path), mode);
+            FileHandle innerFile = innerFileSystem_.open(scopePath(path), mode);
             if (!innerFile)
             {
                 return nullptr;
@@ -121,36 +122,50 @@ namespace lumalink::platform::filesystem
 
         bool remove(std::string_view path) override
         {
-            return innerFileSystem_ != nullptr && !path.empty() && innerFileSystem_->remove(scopePath(path));
+            return !path.empty() && innerFileSystem_.remove(scopePath(path));
         }
 
         bool rename(std::string_view from, std::string_view to) override
         {
-            return innerFileSystem_ != nullptr && !from.empty() && !to.empty() &&
-                   innerFileSystem_->rename(scopePath(from), scopePath(to));
+            return !from.empty() && !to.empty() && innerFileSystem_.rename(scopePath(from), scopePath(to));
         }
 
         bool list(std::string_view directoryPath,
                   const DirectoryEntryCallback &callback,
                   bool recursive = false) override
         {
-            if (innerFileSystem_ == nullptr || directoryPath.empty() || !callback)
+            if (directoryPath.empty() || !callback)
             {
                 return false;
             }
 
-            return innerFileSystem_->list(
+            return innerFileSystem_.list(
                 scopePath(directoryPath),
                 [this, &callback](const DirectoryEntry &entry)
                 {
                     const std::string exposedPath = exposePath(entry.path);
                     const std::string_view nameView = exposedPath == "/"
-                        ? std::string_view(exposedPath)
-                        : PathUtility::getFileName(exposedPath);
+                                                          ? std::string_view(exposedPath)
+                                                          : PathUtility::getFileName(exposedPath);
                     const DirectoryEntry scopedEntry{std::string(nameView), exposedPath, entry.isDirectory};
                     return callback(scopedEntry);
                 },
                 recursive);
+        }
+        std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) override
+        {
+            if (rootPath.empty())
+            {
+                return nullptr;
+            }
+
+            const std::string scopedRoot = scopePath(rootPath);
+            if (!innerFileSystem_.exists(scopedRoot))
+            {
+                return nullptr;
+            }
+
+            return std::make_unique<ScopedFileSystem>(scopedRoot, innerFileSystem_);
         }
 
     private:
@@ -199,6 +214,6 @@ namespace lumalink::platform::filesystem
         }
 
         std::string rootPath_;
-        std::unique_ptr<IFileSystem> innerFileSystem_;
+        IFileSystem &innerFileSystem_;
     };
 }

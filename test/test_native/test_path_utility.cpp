@@ -18,6 +18,17 @@ void test_path_utility_get_dir_name()
     TEST_ASSERT_TRUE(PathUtility::getDirName("plain.txt").empty());
 }
 
+void test_path_utility_is_root()
+{
+    TEST_ASSERT_TRUE(PathUtility::isRoot("/"));
+    TEST_ASSERT_TRUE(PathUtility::isRoot("."));
+    TEST_ASSERT_TRUE(PathUtility::isRoot("C:"));
+    TEST_ASSERT_TRUE(PathUtility::isRoot("C:/"));
+    TEST_ASSERT_TRUE(PathUtility::isRoot("C:\\"));
+    TEST_ASSERT_FALSE(PathUtility::isRoot("/root"));
+    TEST_ASSERT_FALSE(PathUtility::isRoot("C:/root"));
+}
+
 void test_path_utility_join_relative_segments()
 {
     TEST_ASSERT_EQUAL_STRING("dir/file.txt", PathUtility::join("dir", "file.txt").c_str());

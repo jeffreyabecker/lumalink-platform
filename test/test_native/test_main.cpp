@@ -10,11 +10,15 @@ void test_scoped_filesystem_scopes_paths_and_exposes_scoped_view();
 void test_scoped_filesystem_root_scope_passthroughs_paths();
 void test_scoped_filesystem_exposes_scoped_directory_handles_and_entries();
 void test_memory_filesystem_normalize_path_is_noop();
+void test_memory_filesystem_ensure_directory_creates_nested_paths();
+void test_memory_filesystem_ensure_directory_handles_existing_and_root();
+void test_memory_filesystem_ensure_directory_rejects_empty_path();
 void test_scoped_filesystem_normalize_path_delegates_to_inner_filesystem();
 
 // path utility
 void test_path_utility_get_file_name();
 void test_path_utility_get_dir_name();
+void test_path_utility_is_root();
 void test_path_utility_join_relative_segments();
 void test_path_utility_join_preserves_absolute_first_segment();
 void test_path_utility_get_extension();
@@ -85,8 +89,12 @@ int main(int argc, char **argv)
     RUN_TEST(test_memory_directory_and_list);
     RUN_TEST(test_memory_rename);
     RUN_TEST(test_memory_filesystem_normalize_path_is_noop);
+    RUN_TEST(test_memory_filesystem_ensure_directory_creates_nested_paths);
+    RUN_TEST(test_memory_filesystem_ensure_directory_handles_existing_and_root);
+    RUN_TEST(test_memory_filesystem_ensure_directory_rejects_empty_path);
     RUN_TEST(test_path_utility_get_file_name);
     RUN_TEST(test_path_utility_get_dir_name);
+    RUN_TEST(test_path_utility_is_root);
     RUN_TEST(test_path_utility_join_relative_segments);
     RUN_TEST(test_path_utility_join_preserves_absolute_first_segment);
     RUN_TEST(test_path_utility_get_extension);

@@ -169,6 +169,35 @@ void test_memory_filesystem_normalize_path_is_noop()
     TEST_ASSERT_EQUAL_STRING("/dir/file.txt", fs->normalizePath("/dir/file.txt").c_str());
 }
 
+void test_memory_filesystem_ensure_directory_creates_nested_paths()
+{
+    std::unique_ptr<IFileSystem> fs = std::make_unique<MemoryFileSystem>();
+    TEST_ASSERT_NOT_NULL(fs.get());
+
+    TEST_ASSERT_TRUE(fs->ensureDirectory("/root/dir/sub"));
+    TEST_ASSERT_TRUE(fs->exists("/root"));
+    TEST_ASSERT_TRUE(fs->exists("/root/dir"));
+    TEST_ASSERT_TRUE(fs->exists("/root/dir/sub"));
+}
+
+void test_memory_filesystem_ensure_directory_handles_existing_and_root()
+{
+    std::unique_ptr<IFileSystem> fs = std::make_unique<MemoryFileSystem>();
+    TEST_ASSERT_NOT_NULL(fs.get());
+
+    TEST_ASSERT_TRUE(fs->mkdir("/existing"));
+    TEST_ASSERT_TRUE(fs->ensureDirectory("/existing"));
+    TEST_ASSERT_TRUE(fs->ensureDirectory("/"));
+}
+
+void test_memory_filesystem_ensure_directory_rejects_empty_path()
+{
+    std::unique_ptr<IFileSystem> fs = std::make_unique<MemoryFileSystem>();
+    TEST_ASSERT_NOT_NULL(fs.get());
+
+    TEST_ASSERT_FALSE(fs->ensureDirectory(""));
+}
+
 void test_scoped_filesystem_scopes_paths_and_exposes_scoped_view()
 {
     MemoryFileSystem inner;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../buffers/ByteStream.h"
+#include "PathUtility.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,6 +57,28 @@ namespace lumalink::platform::filesystem
                           const DirectoryEntryCallback &callback,
                           bool recursive = false) = 0;
         virtual std::unique_ptr<IFileSystem> getScoped(std::string_view rootPath) = 0;
+
+        virtual bool ensureDirectory(std::string_view path)
+        {
+            if (path.empty())
+            {
+                return false;
+            }
+            if (exists(path))
+            {
+                return true;
+            }
+            if (PathUtility::isRoot(path))
+            {
+                return true;
+            }
+            auto parent = PathUtility::getDirName(path);
+            if (ensureDirectory(parent))
+            {
+                return mkdir(path);
+            }
+            return false;
+        }
     };
 
 }

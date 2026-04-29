@@ -3,6 +3,7 @@
 #include "../buffers/ByteStream.h"
 
 #include <cstddef>
+#include <cctype>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -14,6 +15,25 @@ namespace lumalink::platform::filesystem
 {
     struct PathUtility
     {
+        static bool isRoot(std::string_view path)
+        {
+            if (path == "/" || path == ".")
+            {
+                return true;
+            }
+
+            if (path.size() >= 2 && std::isalpha(static_cast<unsigned char>(path[0])) && path[1] == ':')
+            {
+                if (path.size() == 2)
+                {
+                    return true;
+                }
+
+                return path[2] == '/' || path[2] == '\\';
+            }
+
+            return false;
+        }
         static std::string_view getFileName(std::string_view path)
         {
             const std::size_t separator = path.find_last_of('/');

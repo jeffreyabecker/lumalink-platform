@@ -23,6 +23,9 @@ void test_path_utility_make_relative();
 
 // native filesystem
 void test_native_filesystem_normalize_path();
+#if !defined(_WIN32)
+void test_posix_normalize_path_expands_home();
+#endif
 void test_native_file_factory_can_open_and_read_temp_file();
 void test_native_file_factory_supports_directory_handles();
 void test_native_file_factory_can_write_and_reopen_file();
@@ -30,6 +33,8 @@ void test_native_file_factory_can_write_and_reopen_file();
 void test_windows_forward_slash_in_open_and_exists();
 void test_windows_list_returns_forward_slash_paths();
 void test_windows_backslash_paths_supported();
+void test_windows_normalize_path_expands_known_env_vars();
+void test_windows_normalize_path_resolves_dot_to_cwd();
 #endif
 
 // native transport
@@ -91,6 +96,9 @@ int main(int argc, char **argv)
     RUN_TEST(test_path_utility_remove_extension);
     RUN_TEST(test_path_utility_make_relative);
     RUN_TEST(test_native_filesystem_normalize_path);
+#if !defined(_WIN32)
+    RUN_TEST(test_posix_normalize_path_expands_home);
+#endif
     RUN_TEST(test_native_file_factory_can_open_and_read_temp_file);
     RUN_TEST(test_native_file_factory_supports_directory_handles);
     RUN_TEST(test_native_file_factory_can_write_and_reopen_file);
@@ -98,6 +106,8 @@ int main(int argc, char **argv)
     RUN_TEST(test_windows_forward_slash_in_open_and_exists);
     RUN_TEST(test_windows_list_returns_forward_slash_paths);
     RUN_TEST(test_windows_backslash_paths_supported);
+    RUN_TEST(test_windows_normalize_path_expands_known_env_vars);
+    RUN_TEST(test_windows_normalize_path_resolves_dot_to_cwd);
 #endif
     RUN_TEST(test_native_factory_wrapper_can_be_instantiated);
     RUN_TEST(test_native_factory_creates_tcp_server_and_client_loopback);

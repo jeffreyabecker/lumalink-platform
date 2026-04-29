@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cstdlib>
 #include <fstream>
 #include <limits>
 #include <optional>
@@ -387,6 +388,22 @@ namespace lumalink::platform::posix
 
                                 std::string normalizePath(std::string_view path) const override
                                 {
+                                    if (path == "~" || path.rfind("~/", 0) == 0)
+                                    {
+                                        const char *home = std::getenv("HOME");
+                                        if (home == nullptr || *home == '\0')
+                                        {
+                                            return std::string(path);
+                                        }
+
+                                        if (path.size() == 1)
+                                        {
+                                            return std::string(home);
+                                        }
+
+                                        return PathUtility::join(home, path.substr(2));
+                                    }
+
                                     return std::string(path);
                                 }
 

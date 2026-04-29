@@ -429,7 +429,65 @@ namespace lumalink::platform::windows
 
         std::string normalizePath(std::string_view path) const override
         {
-            return ToExposedPath(path);
+            if (path.empty())
+            {
+                return std::string();
+            }
+
+            auto readEnvVar = [](const char *name) -> std::optional<std::string>
+            {
+                const DWORD required = GetEnvironmentVariableA(name, nullptr, 0);
+                if (required == 0)
+                {
+                    return std::nullopt;
+                }
+
+                std::string value(required - 1, '\0');
+                GetEnvironmentVariableA(name, value.data(), required);
+                return value;
+            };
+
+            auto replaceAll = [](std::string &source, std::string_view token, std::string_view replacement)
+            {
+                std::size_t pos = 0;
+                while ((pos = source.find(token, pos)) != std::string::npos)
+                {
+                    source.replace(pos, token.length(), replacement);
+                    pos += replacement.length();
+                }
+            };
+
+            std::string normalized(path);
+            if (const auto appData = readEnvVar("APPDATA"); appData.has_value())
+            {
+                replaceAll(normalized, "%APPDATA%", appData.value());
+            }
+            if (const auto localAppData = readEnvVar("LOCALAPPDATA"); localAppData.has_value())
+            {
+                replaceAll(normalized, "%LOCALAPPDATA%", localAppData.value());
+            }
+
+            if (!normalized.empty() && normalized.front() == '.' &&
+                (normalized.size() == 1 || normalized[1] == '/' || normalized[1] == '\\'))
+            {
+                const DWORD cwdSize = GetCurrentDirectoryA(0, nullptr);
+                if (cwdSize != 0)
+                {
+                    std::string cwd(cwdSize - 1, '\0');
+                    GetCurrentDirectoryA(cwdSize, cwd.data());
+                    const std::string cwdExposed = ToExposedPath(cwd);
+
+                    if (normalized.size() == 1)
+                    {
+                        return cwdExposed;
+                    }
+
+                    const std::string remainder = normalized.substr(2);
+                    return PathUtility::join(cwdExposed, ToExposedPath(remainder));
+                }
+            }
+
+            return ToExposedPath(normalized);
         }
 
         bool exists(std::string_view path) const override
